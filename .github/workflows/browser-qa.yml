@@ -1,0 +1,42 @@
+name: SeedHedge Browser QA
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install frontend
+        run: npm ci
+      - name: Install browser test tools
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Start preview server
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/seedhedge-vite.log 2>&1 &
+          for i in $(seq 1 40); do curl -sf http://127.0.0.1:5173/ && break || sleep 1; done
+      - name: Desktop/mobile interaction smoke
+        run: python tests/browser_smoke.py
+      - name: Upload Vite logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seedhedge-vite-log
+          path: /tmp/seedhedge-vite.log
+      - name: Upload mobile screenshot when available
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seedhedge-mobile-smoke
+          path: /tmp/seedhedge-mobile-qa.png
+          if-no-files-found: ignore
