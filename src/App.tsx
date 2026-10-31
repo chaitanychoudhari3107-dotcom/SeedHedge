@@ -79,20 +79,32 @@ export default function App() {
   const rejected = result.strategies.filter(s => s.verdict === 'unacceptable');
   const ranked = [...accepted].sort((a, b) => a.cost - b.cost || (a.maximumExposure ?? 99) - (b.maximumExposure ?? 99));
   const chosenDates = active?.allocations ?? [];
+  // Date identity, not allocation order, determines plot color and legend identity.
+  const dateColorIndex = (date: string) => SOWING_DATES.indexOf(date);
   const pairDates = enabledDates.length >= 2 ? enabledDates : [];
   const firstSplitDate = pairDates.includes(splitEarly) ? splitEarly : pairDates[0];
   const secondSplitDate = pairDates.includes(splitLate) && splitLate !== firstSplitDate ? splitLate : pairDates.find(d => d !== firstSplitDate);
+  // Reflect the currently explored split; single-date exploration retains the last split draft.
+  const editorFirstDate = active?.allocations.length === 2 ? active.allocations[0].date : firstSplitDate;
+  const editorSecondDate = active?.allocations.length === 2 ? active.allocations[1].date : secondSplitDate;
+  const editorPercent = active?.allocations.length === 2 ? Math.round(active.allocations[0].share * 100) : splitPercent;
   const selectedVsWinner = result.winner && active ? modelComparison(result.winner, active) : null;
   const featuredStrategies = [result.winner, result.strategies.find(s => s.allocations.length === 1 && s.id !== result.winner?.id),
     result.strategies.find(s => s.allocations.length === 2 && s.verdict === 'acceptable' && s.id !== result.winner?.id),
     result.strategies.find(s => s.allocations.length === 2 && s.id !== result.winner?.id && s.verdict !== 'acceptable')]
     .filter((s): s is Strategy => Boolean(s)).filter((s, i, all) => all.findIndex(x => x.id === s.id) === i);
   const selectSplit = (early: string, late: string, percentage: number) => {
-    if (!early || !late || early === late || !Number.isInteger(percentage) || percentage < 10 || percentage > 90) return;
+    if (!early || !late || early >= late || !pairDates.includes(early) || !pairDates.includes(late) ||
+        !Number.isInteger(percentage) || percentage < 10 || percentage > 90) return;
     const match = result.strategies.find(s => s.allocations.length === 2 &&
       s.allocations.some(a => a.date === early && Math.abs(a.share * 100 - percentage) < .001) &&
       s.allocations.some(a => a.date === late && Math.abs(a.share * 100 - (100 - percentage)) < .001));
-    if (match) setSelectedId(match.id);
+    if (match) {
+      setSelectedId(match.id);
+      setSplitEarly(early);
+      setSplitLate(late);
+      setSplitPercent(percentage);
+    }
   };
   const chooseStrategy = (s: Strategy) => {
     setSelectedId(s.id);
@@ -132,7 +144,7 @@ export default function App() {
       <div className="sidebar-bottom"><div className="badge-light">● Research prototype</div><p>Made for HACKVERSE 2026<br/>No validated crop-safety claims</p></div>
     </aside>
     <main className="main">
-      <header className="topbar"><button type="button" className="mobile-menu-btn" aria-expanded={mobileNavOpen} aria-controls="app-navigation" onClick={() => setMobileNavOpen(v => !v)}>☰ <span>Menu</span></button><div className="breadcrumb">SeedHedge <span>/</span> Strategy Studio</div><div className="top-actions"><span className="live-dot"/> Historical replay · {region.label} <span className="avatar">SH</span></div></header>
+      <header className="topbar"><button type="button" className="mobile-menu-btn" aria-expanded={mobileNavOpen} aria-controls="app-navigation" onClick={() => setMobileNavOpen(v => !v)}>☰ <span>Menu</span></button><div className="breadcrumb">SeedHedge <span>/</span> Strategy Studio</div><div className="top-actions"><span className="live-dot"/> {weatherMode === 'historical' ? 'Historical replay' : 'Synthetic demo'} · {region.label} <span className="avatar">SH</span></div></header>
       <div className="content" id="studio">
         <div className="eyebrow">DECIDE WITH CLARITY <span>✦</span> WEATHER FIRST, COST SECOND</div>
         <div className="hero"><div><h1>Plant with a plan.<br/><em>Not a guess.</em></h1><p>Compare single-date and staggered sowing under climate uncertainty—then find the least expensive strategy that passes the modeled weather screens.</p></div><div className="hero-art" aria-hidden="true"><div className="sun"/><div className="hill hill-back"/><div className="hill hill-front"/><div className="hero-caption">ONE FARM.<br/>MORE THAN ONE WAY FORWARD.</div></div></div>
@@ -143,7 +155,7 @@ export default function App() {
             <label htmlFor="region">Region</label><select id="region" className="field-select" value={regionId} onChange={e => { setRegionId(e.target.value); setSelectedId(null); setDatabaseNote(''); }}>{REGIONS.map(r => <option key={r.id} value={r.id}>{r.label}, {r.state}</option>)}</select>
             <label htmlFor="crop">Crop (supported pilot)</label><select id="crop" className="field-select" value="soybean" disabled><option value="soybean">Soybean · Kharif</option></select><p className="input-help">Only soybean is currently modeled. Other crops require validated crop-specific rules.</p>
             <label htmlFor="area">Farm area (acres)</label><input id="area" type="number" step="0.25" min="0.25" max="1000" value={area} onChange={e => { const v = Number(e.target.value); if (Number.isFinite(v) && v > 0 && v <= 1000) setArea(v); }}/>
-            <label>Compare candidate dates <small>(demo window)</small></label><div className="date-toggles">{SOWING_DATES.map(date => { const on = enabledDates.includes(date); return <button type="button" key={date} className={on ? 'date-on' : ''} aria-pressed={on} disabled={on && enabledDates.length === 1} onClick={() => setEnabledDates(old => on ? old.filter(x => x !== date) : [...old, date])}>{friendlyDate(date)}</button>; })}</div>
+            <label>Compare candidate dates <small>(demo window)</small></label><div className="date-toggles">{SOWING_DATES.map(date => { const on = enabledDates.includes(date); return <button type="button" key={date} className={on ? 'date-on' : ''} aria-pressed={on} disabled={on && enabledDates.length === 1} onClick={() => { setEnabledDates(old => on ? old.filter(x => x !== date) : [...old, date].sort()); setSelectedId(null); }}>{friendlyDate(date)}</button>; })}</div>
             <label htmlFor="weather-mode">Weather evidence mode</label>
             <select id="weather-mode" className="field-select" value={weatherMode} onChange={e => { setWeatherMode(e.target.value as 'historical' | 'synthetic'); setSelectedId(null); }}><option value="historical">Real 2022–2025 reanalysis</option><option value="synthetic">Synthetic UI demo only</option></select>
             {weatherMode === 'synthetic' && <div className="segmented"><button type="button" className={mode === 'stress' ? 'selected' : ''} onClick={() => setMode('stress')}>Stress test</button><button type="button" className={mode === 'calm' ? 'selected' : ''} onClick={() => setMode('calm')}>Stable</button></div>}
@@ -162,18 +174,19 @@ export default function App() {
             </div>
             <div className="allocation-editor"><div className="allocation-head"><strong>Build a split strategy</strong><span>10% increments · exploratory</span></div>
               {pairDates.length >= 2 && secondSplitDate ? <>
-                <div className="allocation-pickers"><label>First date<select aria-label="Split first date" className="field-select" value={firstSplitDate} onChange={e => { const d=e.target.value; setSplitEarly(d); const other= d === secondSplitDate ? pairDates.find(x => x !== d) ?? d : secondSplitDate; setSplitLate(other); selectSplit(d,other,splitPercent); }}>{pairDates.filter(d => d !== secondSplitDate).map(d => <option key={d} value={d}>{friendlyDate(d)}</option>)}</select></label>
-                <label>Second date<select aria-label="Split second date" className="field-select" value={secondSplitDate} onChange={e => { const d=e.target.value; setSplitLate(d); selectSplit(firstSplitDate,d,splitPercent); }}>{pairDates.filter(d => d !== firstSplitDate).map(d => <option key={d} value={d}>{friendlyDate(d)}</option>)}</select></label></div>
-                <label htmlFor="allocation-slider" className="allocation-slider-label">First-date allocation: <b>{splitPercent}% / {100-splitPercent}%</b></label>
-                <input id="allocation-slider" type="range" min="10" max="90" step="10" value={splitPercent} onChange={e => { const pct = Number(e.target.value); setSplitPercent(pct); selectSplit(firstSplitDate,secondSplitDate,pct); }}/>
+                <div className="allocation-pickers"><label>First date<select aria-label="Split first date" className="field-select" value={editorFirstDate} onChange={e => { const d=e.target.value; const other = d === editorSecondDate ? pairDates.find(x => x !== d) : editorSecondDate; if (other) selectSplit(d, other, editorPercent); }}>{pairDates.filter(d => editorSecondDate !== undefined && d < editorSecondDate).map(d => <option key={d} value={d}>{friendlyDate(d)}</option>)}</select></label>
+                <label>Second date<select aria-label="Split second date" className="field-select" value={editorSecondDate} onChange={e => selectSplit(editorFirstDate, e.target.value, editorPercent)}>{pairDates.filter(d => d > editorFirstDate).map(d => <option key={d} value={d}>{friendlyDate(d)}</option>)}</select></label></div>
+                <label htmlFor="allocation-slider" className="allocation-slider-label">First-date allocation: <b>{editorPercent}% / {100-editorPercent}%</b></label>
+                <input id="allocation-slider" type="range" min="10" max="90" step="10" value={editorPercent} onChange={e => selectSplit(editorFirstDate,editorSecondDate ?? '',Number(e.target.value))}/>
+                {active?.allocations.length !== 2 && <p className="input-help" role="status">Currently viewing a single-date strategy. Moving the slider will select a split strategy.</p>}
                 <p className="input-help">Adjust the split to inspect a recalculated weather and cost outcome. If it fails screening, it remains an exploratory option—not a recommendation.</p>
               </> : <p className="input-help">Enable at least two candidate dates to explore split strategies.</p>}
             </div>
             <div className="farm-plot" role="img" aria-label="A stylized farm grid colored by the selected sowing allocation">
-              {Array.from({ length: 100 }, (_, i) => { const chosen = chosenDates.findIndex((_, j) => i < Math.round(chosenDates.slice(0, j + 1).reduce((t, x) => t + x.share, 0) * 100)); return <span key={i} className={`plot-cell plot-${Math.max(0, chosen)}`} />; })}
+              {Array.from({ length: 100 }, (_, i) => { const chosen = chosenDates.find((_, j) => i < Math.round(chosenDates.slice(0, j + 1).reduce((t, x) => t + x.share, 0) * 100)); return <span key={i} data-date={chosen?.date ?? ''} className={`plot-cell ${chosen ? `plot-${dateColorIndex(chosen.date)}` : 'plot-empty'}`} />; })}
               <span className="farm-overlay">YOUR FIELD<br/><small>{area} ACRES</small></span>
             </div>
-            <div className="legend"><span><i className="key-0"/> {friendlyDate(SOWING_DATES[0])}</span><span><i className="key-1"/> {friendlyDate(SOWING_DATES[1])}</span><span><i className="key-2"/> {friendlyDate(SOWING_DATES[2])}</span></div>
+            <div className="legend" aria-label="Colors for selected sowing dates">{chosenDates.length ? chosenDates.map(a => <span key={a.date} data-date={a.date}><i className={`key-${dateColorIndex(a.date)}`}/> {friendlyDate(a.date)} · {Math.round(a.share * 100)}%</span>) : <span>No allocation selected</span>}</div>
             <div className="selection"><b>Selected allocation</b><span>{active ? allocationName(active) : '—'}</span></div>
             <div className="selection-sub">{active ? `Exploring: ${active.verdict.toUpperCase()} under the selected model · ${money(active.cost)}. ${active.reason}` : 'No candidate selected.'}</div>
           </section>
@@ -212,7 +225,7 @@ export default function App() {
             <div className="forecast-box"><b>Current 7-day weather forecast — {region.label}</b><p>Separate live forecast context. It is NOT used to score historical soybean sowing dates.</p>{currentForecast ? <div className="forecast-days">{currentForecast.map(d => <span key={d.date}><strong>{friendlyDate(d.date)}</strong><small>{d.precipitationMm.toFixed(1)} mm rain</small><small>{d.maxTempC.toFixed(0)}°C max</small></span>)}</div> : <p role="status">{forecastError ? `Forecast unavailable: ${forecastError}` : 'Fetching current forecast…'}</p>}</div>
             <p className="source-note">ICAR-NSRI recommends sowing soybean after monsoon onset and about 100 mm of rain; this prototype uses a 14-day retrospective rainfall approximation. Additional heat/rain exposure weights and the pass threshold are UNVALIDATED heuristics. Reanalysis is not a field measurement. No crop-loss, agronomic-safety or forecast-skill claim is made. <a href="https://icar-nsri.res.in/pdfdoc/Advisory2026/June%281-7%29%2C%202026.pdf" target="_blank" rel="noreferrer">ICAR soybean advisory ↗</a></p></section>
         </div>
-        <footer>SeedHedge · HACKVERSE 2026 <span>Prototype 0.3 · Interactive strategy analysis · Screening heuristic requires expert validation</span></footer>
+        <footer>SeedHedge · HACKVERSE 2026 <span>Prototype 0.3.1 · Stable strategy exploration · Screening heuristic requires expert validation</span></footer>
       </div>
     </main>
   </div>;
