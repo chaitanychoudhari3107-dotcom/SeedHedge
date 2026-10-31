@@ -85,7 +85,8 @@ class SeedHedgeBrowserTests(unittest.TestCase):
         p.get_by_text('Loaded 2022, 2023, 2024, 2025 reanalysis').wait_for(timeout=12000)
         self.assertTrue(any('latitude=19.84' in url for url in self.request_urls))
         p.get_by_text('Show historical reanalysis inputs behind the heuristic').click()
-        self.assertIn('previous 14-day rain',p.locator('.diagnostics-detail').first.inner_text().lower())
+        self.assertIn('previous 14-day rain', p.locator('.diagnostics-detail').first.inner_text().lower())
+
     def test_editable_cost_and_status_explanation(self):
         p = self.page
         p.locator('#weather-mode').select_option('synthetic')
@@ -102,6 +103,43 @@ class SeedHedgeBrowserTests(unittest.TestCase):
         p.get_by_text('Unavailable:', exact=False).first.wait_for(timeout=12000)
         self.assertIn('Weather unavailable', p.locator('.decision').inner_text())
         self.assertEqual(p.locator('.decision-price').count(), 0)
+
+    def test_split_editor_stays_synced_after_date_changes(self):
+        p = self.page
+        p.locator('#weather-mode').select_option('synthetic')
+        p.get_by_role('button', name='Split sowing', exact=False).first.click()
+        # Slider and selectors must describe the same strategy shown on the farm.
+        self.assertIn(p.locator('.allocation-slider-label b').inner_text().split(' / ')[0], p.locator('.selection').inner_text())
+        p.locator('#allocation-slider').fill('70')
+        self.assertIn('70%', p.locator('.selection').inner_text())
+        date_to_disable = '2024-06-20'
+        p.locator(f'.date-toggles button').filter(has_text='20 Jun').click()
+        self.assertNotIn(date_to_disable, p.locator('#strategy-select').input_value())
+        self.assertNotIn(date_to_disable, p.locator('.legend').get_attribute('data-date') or '')
+        self.assertGreater(p.locator('#strategy-select option').count(), 0)
+        self.assertNotIn('20 Jun', p.locator('.selection').inner_text())
+        # A new slider interaction must select a valid strategy after the date was removed.
+        p.locator('#allocation-slider').fill('60')
+        self.assertIn('60%', p.locator('.selection').inner_text())
+
+    def test_farm_legend_matches_exact_planting_dates(self):
+        p = self.page
+        p.locator('#weather-mode').select_option('synthetic')
+        # A single-date choice for July 5 must have the fifth date's color,
+        # rather than the color of the first allocation in a strategy.
+        p.locator('#strategy-select').select_option(label=next(
+            p.locator('#strategy-select option').nth(i).inner_text()
+            for i in range(p.locator('#strategy-select option').count())
+            if p.locator('#strategy-select option').nth(i).get_attribute('value') == '2024-07-05:100'
+        ))
+        self.assertEqual(p.locator('.plot-cell.plot-4').count(), 100)
+        self.assertEqual(p.locator('.legend span').count(), 1)
+        self.assertEqual(p.locator('.legend span').first.get_attribute('data-date'), '2024-07-05')
+        p.locator('#allocation-slider').fill('70')
+        self.assertEqual(p.locator('.legend span').count(), 2)
+        for legend in p.locator('.legend span').all():
+            dt = legend.get_attribute('data-date')
+            self.assertGreater(p.locator(f'.plot-cell[data-date="{dt}"]').count(), 0)
 
     def test_mobile_navigation_and_controls(self):
         self.page.set_viewport_size({'width': 390, 'height': 844})

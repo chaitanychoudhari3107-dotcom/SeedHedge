@@ -22,3 +22,8 @@
 @media(max-width:640px){.strategy-quick-cards,.comparison-cards{grid-template-columns:1fr}.allocation-pickers{grid-template-columns:1fr}.metrics-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.analysis-grid{gap:12px}.quick-card{padding:13px}.top-actions .avatar{display:none}}
 @media(prefers-reduced-motion:reduce){.quick-card{transition:none}.quick-card:hover{transform:none}}
 .table-wrap{max-height:455px;overflow:auto}.table-wrap thead th{position:sticky;top:0;z-index:3}
+
+/* v0.3.1: stable date-identity colors for every supported candidate date */
+.plot-3,.key-3{background:#cc996b}.plot-4,.key-4{background:#8b94b7}
+.plot-empty{background:#dae3d3}
+.legend span{min-width:0;overflow-wrap:anywhere}
