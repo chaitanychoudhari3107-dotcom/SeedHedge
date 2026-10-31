@@ -1,7 +1,7 @@
+import DecisionDashboard from './DecisionDashboard.tsx';
 import { useEffect, useMemo, useState } from 'react';
 import { analyze, defaultRates, type CostRates, type Strategy } from './engine.ts';
 import { strategyBreakdown, strategyScenarioRows, modelComparison } from './strategy-insight.ts';
-import { rainfallThresholdPlan, comparePlans } from './approaches.ts';
 import { calmScenarios, demoScenarios } from './fixtures.ts';
 import { REGIONS } from './regions.ts';
 import { databaseConfigured, fetchReferenceRates } from './database.ts';
@@ -92,8 +92,6 @@ export default function App() {
   const editorSecondDate = active?.allocations.length === 2 ? active.allocations[1].date : secondSplitDate;
   const editorPercent = active?.allocations.length === 2 ? Math.round(active.allocations[0].share * 100) : splitPercent;
   const selectedVsWinner = result.winner && active ? modelComparison(result.winner, active) : null;
-  const planA = useMemo(() => rainfallThresholdPlan(weatherMode === 'historical' ? weather : null, enabledDates, area, rates, rainfallThreshold), [weatherMode, weather, enabledDates, area, rates, rainfallThreshold]);
-  const planComparison = comparePlans(planA, result.winner);
   const featuredStrategies = [result.winner, result.strategies.find(s => s.allocations.length === 1 && s.id !== result.winner?.id),
     result.strategies.find(s => s.allocations.length === 2 && s.verdict === 'acceptable' && s.id !== result.winner?.id),
     result.strategies.find(s => s.allocations.length === 2 && s.id !== result.winner?.id && s.verdict !== 'acceptable')]
@@ -159,29 +157,16 @@ export default function App() {
           <div className="panel-heading"><div><span className="section-label">DEMO STORY / HISTORICAL REPLAY</span><h2>One farmer. Two approaches. One transparent comparison.</h2></div><button className="reset-btn" type="button" onClick={() => setDemoGuideOpen(x => !x)}>{demoGuideOpen ? 'Hide walkthrough' : 'Show walkthrough'}</button></div>
           {demoGuideOpen && <div className="v04-story"><p><b>Farmer:</b> {region.label}, Maharashtra · <b>Area:</b> {area} acres · <b>Crop:</b> soybean, Kharif. Candidate dates are June–July 2024 historical counterfactuals—not today's planting advice.</p><p><b>Uncertainty:</b> how much rain has already fallen and how different planting splits behave under replayed years. <b>Demo:</b> compare Plan A with Plan B, change rainfall cutoff, explore split allocations, inspect provenance, then switch Stress/Stable to explain simulated sensitivity.</p></div>}
         </section>
-        <section className="panel v04-dual" id="plans" aria-label="Two distinct prototype sowing approaches">
-          <div className="panel-heading"><div><span className="section-label">TWO INDEPENDENT METHODS / ONE FARMER INPUT</span><h2>Plan A vs Plan B</h2></div><span className="mini-pill">Research comparison · not agronomic advice</span></div>
-          <div className="v04-plan-grid">
-            <article className="v04-plan-card"><span className="section-label">PLAN A · RAINFALL-THRESHOLD RULE</span><h3>Wait for preceding rainfall</h3>
-              <label htmlFor="rainfall-threshold">Experimental 14-day rainfall minimum: <b>{rainfallThreshold} mm</b></label>
-              <input type="range" id="rainfall-threshold" min="20" max="200" step="10" value={rainfallThreshold} onChange={e => setRainfallThreshold(Number(e.target.value))}/>
-              <p><b>Inputs:</b> 14 days of rainfall preceding each candidate date, across all available replay years. No future rainfall is used for Plan A qualification.</p>
-              <strong className="v04-result">{loadingWeather && weatherMode === 'historical' ? 'Loading historical evidence…' : planA.date ? `${friendlyDate(planA.date)} · ${money(planA.cost ?? 0)}` : 'No date qualifies / insufficient evidence'}</strong>
-              <p>{planA.explanation}</p>
-              {planA.rainByYear.length > 0 && <p className="v04-analog">Last candidate rainfall by year: {planA.rainByYear.map(x => `${x.year}: ${x.rainMm === null ? 'missing' : `${x.rainMm.toFixed(0)} mm`}`).join(' · ')}</p>}
-              <p className="v04-caveat">The all-years rule and chosen millimetre cutoff are prototype assumptions, not validated requirements. It may yield no plan.</p>
-            </article>
-            <article className="v04-plan-card"><span className="section-label">PLAN B · STAGGERED EXPOSURE SCREEN</span><h3>Explore single vs split sowing</h3>
-              <p><b>Inputs:</b> the same dates, area and editable costs; historical scenario scores or explicitly simulated scenarios.</p>
-              <strong className="v04-result">{loadingWeather && weatherMode === 'historical' ? 'Loading historical evidence…' : result.winner ? `${allocationName(result.winner)} · ${money(result.winner.cost)}` : 'No modeled-acceptable allocation'}</strong>
-              <p><b>Formula:</b> exposure = min(1, 0.68 × rainfall shortfall + 0.20 × 3-day excess rainfall + 0.12 × heat). Strategy exposure is allocation-weighted; its worst replay year must be ≤ 0.60.</p>
-              <p><b>Cost:</b> acres × (seed kg/acre × seed price + labour + machinery) + number of visits × (mobilisation + other charges).</p>
-              <p className="v04-caveat">Weights, weather cutoffs and screen are unvalidated modeling assumptions; split planting has not been shown here to reduce crop loss.</p>
-            </article>
-          </div>
-          <div className="v04-verdict" role="status"><b>Trade-off:</b> {planComparison.explanation} {planA.date && result.winner ? `Plan A uses one planting visit; Plan B uses ${result.winner.visits}.` : ''} Both approaches use the same acreage and cost rates. No agronomic superiority is claimed.</div>
-          <div className="v04-provenance">Historical source: <a target="_blank" rel="noreferrer" href={weather?.sourceUrls[2] ?? 'https://open-meteo.com/en/docs/historical-weather-api'}>Open-Meteo archive reanalysis ↗</a>. {weather ? `Retrieved ${new Date(weather.retrievedAt).toLocaleString('en-IN')}. Transport: ${weather.fetchTransports?.includes('vercel-relay') ? 'same-origin Vercel relay and/or direct' : 'direct browser API'}.` : 'Live request unverified or pending.'} Synthetic mode is an explicitly fictional demonstration and cannot evaluate Plan A.</div>
-        </section>
+        <DecisionDashboard
+          weather={weather} loading={loadingWeather} error={weatherError}
+          mode={weatherMode} simulation={mode} region={region.label}
+          area={area} dates={enabledDates} rates={rates}
+          threshold={rainfallThreshold} onThresholdChange={setRainfallThreshold}
+          winner={result.winner} selected={active} acceptableCount={accepted.length}
+          strategyCount={result.strategies.length}
+          onRetry={() => setReloadKey(v => v + 1)}
+          onDemo={() => { setWeatherMode('synthetic'); setMode('stress'); setSelectedId(null); }}
+        />
         <div className="studio-grid">
           <section className="panel config"><div className="panel-heading"><div><span className="section-label">01 / INPUT</span><h2>Your farm</h2></div><span className="small-icon">⚙</span></div>
             <label htmlFor="region">Region</label><select id="region" className="field-select" value={regionId} onChange={e => { setRegionId(e.target.value); setSelectedId(null); setDatabaseNote(''); }}>{REGIONS.map(r => <option key={r.id} value={r.id}>{r.label}, {r.state}</option>)}</select>
