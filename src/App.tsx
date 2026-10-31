@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { analyze, defaultRates, type CostRates, type Strategy } from './engine.ts';
 import { strategyBreakdown, strategyScenarioRows, modelComparison } from './strategy-insight.ts';
+import { rainfallThresholdPlan, comparePlans } from './approaches.ts';
 import { calmScenarios, demoScenarios } from './fixtures.ts';
 import { REGIONS } from './regions.ts';
 import { databaseConfigured, fetchReferenceRates } from './database.ts';
@@ -41,6 +42,8 @@ export default function App() {
   const [weatherMode, setWeatherMode] = useState<'historical' | 'synthetic'>('historical');
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [rainfallThreshold, setRainfallThreshold] = useState(100);
+  const [demoGuideOpen, setDemoGuideOpen] = useState(true);
   const [databaseNote, setDatabaseNote] = useState('');
   const [rates, setRates] = useState<CostRates>(storedRates);
   const [mode, setMode] = useState<'stress' | 'calm'>('stress');
@@ -89,6 +92,8 @@ export default function App() {
   const editorSecondDate = active?.allocations.length === 2 ? active.allocations[1].date : secondSplitDate;
   const editorPercent = active?.allocations.length === 2 ? Math.round(active.allocations[0].share * 100) : splitPercent;
   const selectedVsWinner = result.winner && active ? modelComparison(result.winner, active) : null;
+  const planA = useMemo(() => rainfallThresholdPlan(weatherMode === 'historical' ? weather : null, enabledDates, area, rates, rainfallThreshold), [weatherMode, weather, enabledDates, area, rates, rainfallThreshold]);
+  const planComparison = comparePlans(planA, result.winner);
   const featuredStrategies = [result.winner, result.strategies.find(s => s.allocations.length === 1 && s.id !== result.winner?.id),
     result.strategies.find(s => s.allocations.length === 2 && s.verdict === 'acceptable' && s.id !== result.winner?.id),
     result.strategies.find(s => s.allocations.length === 2 && s.id !== result.winner?.id && s.verdict !== 'acceptable')]
@@ -149,7 +154,34 @@ export default function App() {
         <div className="eyebrow">DECIDE WITH CLARITY <span>✦</span> WEATHER FIRST, COST SECOND</div>
         <div className="hero"><div><h1>Plant with a plan.<br/><em>Not a guess.</em></h1><p>Compare single-date and staggered sowing under climate uncertainty—then find the least expensive strategy that passes the modeled weather screens.</p></div><div className="hero-art" aria-hidden="true"><div className="sun"/><div className="hill hill-back"/><div className="hill hill-front"/><div className="hero-caption">ONE FARM.<br/>MORE THAN ONE WAY FORWARD.</div></div></div>
         <div className="notice"><span>ⓘ</span><div><b>Research replay — not current sowing advice.</b> Weather inputs come from Open-Meteo historical reanalysis for 2022–2025 when the API succeeds. The exposure formula and 0.60 decision cutoff are <b>unvalidated modeling assumptions</b>, not agronomic safety standards, crop-failure probabilities or forecasts available in 2024. The simulation mode uses wholly invented values.</div></div>
-        <div className="stats"><div className="stat"><span>Generated strategies</span><strong>{result.strategies.length}</strong><small>Calculated from selected sowing dates</small></div><div className="stat"><span>Screened acceptable</span><strong>{accepted.length}<span className="tiny"> / {result.strategies.length}</span></strong><small>Based on selected weather model</small></div><div className="stat"><span>Lowest acceptable cost</span><strong>{result.winner ? money(result.winner.cost) : '—'}</strong><small>Estimated, adjustable local rates</small></div></div>
+        <div className="stats"><div className="stat"><span>Generated strategies</span><strong>{result.strategies.length}</strong><small>Calculated from selected sowing dates</small></div><div className="stat"><span>Screened acceptable</span><strong>{loadingWeather && weatherMode === 'historical' ? 'Loading…' : `${accepted.length} / ${result.strategies.length}`}</strong><small>Based on selected weather model</small></div><div className="stat"><span>Lowest acceptable cost</span><strong>{loadingWeather && weatherMode === 'historical' ? 'Loading…' : result.winner ? money(result.winner.cost) : '—'}</strong><small>Estimated, adjustable local rates</small></div></div>
+        <section className="panel v04-case" aria-label="Demonstration case study">
+          <div className="panel-heading"><div><span className="section-label">DEMO STORY / HISTORICAL REPLAY</span><h2>One farmer. Two approaches. One transparent comparison.</h2></div><button className="reset-btn" type="button" onClick={() => setDemoGuideOpen(x => !x)}>{demoGuideOpen ? 'Hide walkthrough' : 'Show walkthrough'}</button></div>
+          {demoGuideOpen && <div className="v04-story"><p><b>Farmer:</b> {region.label}, Maharashtra · <b>Area:</b> {area} acres · <b>Crop:</b> soybean, Kharif. Candidate dates are June–July 2024 historical counterfactuals—not today's planting advice.</p><p><b>Uncertainty:</b> how much rain has already fallen and how different planting splits behave under replayed years. <b>Demo:</b> compare Plan A with Plan B, change rainfall cutoff, explore split allocations, inspect provenance, then switch Stress/Stable to explain simulated sensitivity.</p></div>}
+        </section>
+        <section className="panel v04-dual" id="plans" aria-label="Two distinct prototype sowing approaches">
+          <div className="panel-heading"><div><span className="section-label">TWO INDEPENDENT METHODS / ONE FARMER INPUT</span><h2>Plan A vs Plan B</h2></div><span className="mini-pill">Research comparison · not agronomic advice</span></div>
+          <div className="v04-plan-grid">
+            <article className="v04-plan-card"><span className="section-label">PLAN A · RAINFALL-THRESHOLD RULE</span><h3>Wait for preceding rainfall</h3>
+              <label htmlFor="rainfall-threshold">Experimental 14-day rainfall minimum: <b>{rainfallThreshold} mm</b></label>
+              <input type="range" id="rainfall-threshold" min="20" max="200" step="10" value={rainfallThreshold} onChange={e => setRainfallThreshold(Number(e.target.value))}/>
+              <p><b>Inputs:</b> 14 days of rainfall preceding each candidate date, across all available replay years. No future rainfall is used for Plan A qualification.</p>
+              <strong className="v04-result">{loadingWeather && weatherMode === 'historical' ? 'Loading historical evidence…' : planA.date ? `${friendlyDate(planA.date)} · ${money(planA.cost ?? 0)}` : 'No date qualifies / insufficient evidence'}</strong>
+              <p>{planA.explanation}</p>
+              {planA.rainByYear.length > 0 && <p className="v04-analog">Last candidate rainfall by year: {planA.rainByYear.map(x => `${x.year}: ${x.rainMm === null ? 'missing' : `${x.rainMm.toFixed(0)} mm`}`).join(' · ')}</p>}
+              <p className="v04-caveat">The all-years rule and chosen millimetre cutoff are prototype assumptions, not validated requirements. It may yield no plan.</p>
+            </article>
+            <article className="v04-plan-card"><span className="section-label">PLAN B · STAGGERED EXPOSURE SCREEN</span><h3>Explore single vs split sowing</h3>
+              <p><b>Inputs:</b> the same dates, area and editable costs; historical scenario scores or explicitly simulated scenarios.</p>
+              <strong className="v04-result">{loadingWeather && weatherMode === 'historical' ? 'Loading historical evidence…' : result.winner ? `${allocationName(result.winner)} · ${money(result.winner.cost)}` : 'No modeled-acceptable allocation'}</strong>
+              <p><b>Formula:</b> exposure = min(1, 0.68 × rainfall shortfall + 0.20 × 3-day excess rainfall + 0.12 × heat). Strategy exposure is allocation-weighted; its worst replay year must be ≤ 0.60.</p>
+              <p><b>Cost:</b> acres × (seed kg/acre × seed price + labour + machinery) + number of visits × (mobilisation + other charges).</p>
+              <p className="v04-caveat">Weights, weather cutoffs and screen are unvalidated modeling assumptions; split planting has not been shown here to reduce crop loss.</p>
+            </article>
+          </div>
+          <div className="v04-verdict" role="status"><b>Trade-off:</b> {planComparison.explanation} {planA.date && result.winner ? `Plan A uses one planting visit; Plan B uses ${result.winner.visits}.` : ''} Both approaches use the same acreage and cost rates. No agronomic superiority is claimed.</div>
+          <div className="v04-provenance">Historical source: <a target="_blank" rel="noreferrer" href={weather?.sourceUrls[2] ?? 'https://open-meteo.com/en/docs/historical-weather-api'}>Open-Meteo archive reanalysis ↗</a>. {weather ? `Retrieved ${new Date(weather.retrievedAt).toLocaleString('en-IN')}. Transport: ${weather.fetchTransports?.includes('vercel-relay') ? 'same-origin Vercel relay and/or direct' : 'direct browser API'}.` : 'Live request unverified or pending.'} Synthetic mode is an explicitly fictional demonstration and cannot evaluate Plan A.</div>
+        </section>
         <div className="studio-grid">
           <section className="panel config"><div className="panel-heading"><div><span className="section-label">01 / INPUT</span><h2>Your farm</h2></div><span className="small-icon">⚙</span></div>
             <label htmlFor="region">Region</label><select id="region" className="field-select" value={regionId} onChange={e => { setRegionId(e.target.value); setSelectedId(null); setDatabaseNote(''); }}>{REGIONS.map(r => <option key={r.id} value={r.id}>{r.label}, {r.state}</option>)}</select>
@@ -158,8 +190,9 @@ export default function App() {
             <label>Compare candidate dates <small>(demo window)</small></label><div className="date-toggles">{SOWING_DATES.map(date => { const on = enabledDates.includes(date); return <button type="button" key={date} className={on ? 'date-on' : ''} aria-pressed={on} disabled={on && enabledDates.length === 1} onClick={() => { setEnabledDates(old => on ? old.filter(x => x !== date) : [...old, date].sort()); setSelectedId(null); }}>{friendlyDate(date)}</button>; })}</div>
             <label htmlFor="weather-mode">Weather evidence mode</label>
             <select id="weather-mode" className="field-select" value={weatherMode} onChange={e => { setWeatherMode(e.target.value as 'historical' | 'synthetic'); setSelectedId(null); }}><option value="historical">Real 2022–2025 reanalysis</option><option value="synthetic">Synthetic UI demo only</option></select>
-            {weatherMode === 'synthetic' && <div className="segmented"><button type="button" className={mode === 'stress' ? 'selected' : ''} onClick={() => setMode('stress')}>Stress test</button><button type="button" className={mode === 'calm' ? 'selected' : ''} onClick={() => setMode('calm')}>Stable</button></div>}
+            {weatherMode === 'synthetic' && <><div className="segmented"><button type="button" className={mode === 'stress' ? 'selected' : ''} onClick={() => {setMode('stress');setSelectedId(null);}}>Stress test</button><button type="button" className={mode === 'calm' ? 'selected' : ''} onClick={() => {setMode('calm');setSelectedId(null);}}>Stable</button></div><p className="input-help" role="status">Active simulation: {mode === 'stress' ? 'Stress · three simulated adverse weather scenarios' : 'Stable · two simulated lower-exposure scenarios'}. {accepted.length} strategies currently pass the experimental 0.60 screen. {active?.maximumExposure === null ? 'The explored strategy has unknown exposure.' : `Explored strategy worst modeled index: ${active?.maximumExposure?.toFixed(2) ?? 'not available'}.`} Cost rates are unchanged.</p></>}
             <div className="source-state" role="status">{weatherMode === 'synthetic' ? 'Synthetic example — NOT real weather.' : loadingWeather ? 'Fetching historical Open-Meteo weather…' : weatherError ? `Unavailable: ${weatherError}` : weather ? `Loaded ${weather.years.join(', ')} reanalysis for ${region.label}.` : 'No weather evidence.'}{weatherMode === 'historical' && <button type="button" onClick={() => setReloadKey(v => v + 1)}>↻ Retry</button>}</div>
+            {weatherMode === 'historical' && weatherError && <div className="weather-recovery" role="alert"><strong>Historical weather could not load.</strong><p>{weatherError}</p><button type="button" onClick={() => setReloadKey(v => v + 1)}>Retry real weather</button><button type="button" onClick={() => { setWeatherMode('synthetic'); setMode('stress'); setSelectedId(null); }}>Use clearly labeled synthetic demo</button></div>}
             <div className="info-card"><b>How we decide</b><p>1. Screen whole-planting strategies against weather assumptions.<br/>2. Remove unacceptable/unknown strategies.<br/>3. Choose the lowest estimated cost remaining.</p></div>
           </section>
           <section className="panel farm-panel"><div className="panel-heading"><div><span className="section-label">02 / EXPLORE</span><h2>Virtual farm allocation</h2></div><span className="mini-pill">Interactive preview</span></div>
@@ -191,7 +224,7 @@ export default function App() {
             <div className="selection-sub">{active ? `Exploring: ${active.verdict.toUpperCase()} under the selected model · ${money(active.cost)}. ${active.reason}` : 'No candidate selected.'}</div>
           </section>
           <section className="panel decision"><div className="panel-heading"><div><span className="section-label">03 / DECISION</span><h2>Strategy intelligence</h2></div><span className="small-icon">✺</span></div>
-            {result.winner ? <><div className="winner-label">✓ Lowest-cost modeled-acceptable strategy</div><div className="winner-value">{allocationName(result.winner)}</div><div className="decision-price">{money(result.winner.cost)}<small> estimated sowing cost</small></div><p className="decision-body">{result.winner.reason} {weatherMode === 'synthetic' ? 'Synthetic scenarios only.' : 'Historical reanalysis scenario comparison, not a live planting forecast.'}</p></> : <><div className="winner-label uncertain">{weatherMode === 'historical' && !weather ? weatherError ? 'Weather unavailable — cannot rank' : 'Waiting for verified weather inputs' : 'No strategy passes the current model'}</div><p>{weatherError || 'Insufficient evidence or no options pass the demonstration threshold. No recommendation is forced.'}</p></>}
+            {result.winner ? <><div className="winner-label">✓ Lowest-cost modeled-acceptable strategy</div><div className="winner-value">{allocationName(result.winner)}</div><div className="decision-price">{money(result.winner.cost)}<small> estimated sowing cost</small></div><p className="decision-body">{result.winner.reason} {weatherMode === 'synthetic' ? 'Synthetic scenarios only.' : 'Historical reanalysis scenario comparison, not a live planting forecast.'}</p></> : <><div className="winner-label uncertain">{weatherMode === 'historical' && !weather ? weatherError ? 'Weather unavailable — cannot rank' : loadingWeather ? 'Loading historical evidence — results pending' : 'Waiting for historical evidence' : 'No strategy passes the current model'}</div><p>{weatherError || 'Insufficient evidence or no options pass the demonstration threshold. No recommendation is forced.'}</p></>}
             <div className="decision-divider"/><div className="assistant-title">🎙 SeedHedge Voice <span>Beta</span></div><p className="subtle">Hear the computed explanation. Playback depends on your browser's installed voices.</p>
             <div className="voice-tools"><select aria-label="Voice language" value={language} onChange={e => setLanguage(e.target.value as Language)}><option value="mr-IN">मराठी</option><option value="hi-IN">हिन्दी</option><option value="en-IN">English</option></select><button onClick={speak} disabled={!result.winner || !('speechSynthesis' in window)}>▶ Explain</button></div>
             <p className="voice-copy">{result.winner ? `${weatherMode === 'historical' ? 'Historical replay, not a forecast. ' : 'Synthetic scenario. '}${text[language](result.winner)}` : 'No strategy passed the current model.'}</p>
@@ -225,7 +258,7 @@ export default function App() {
             <div className="forecast-box"><b>Current 7-day weather forecast — {region.label}</b><p>Separate live forecast context. It is NOT used to score historical soybean sowing dates.</p>{currentForecast ? <div className="forecast-days">{currentForecast.map(d => <span key={d.date}><strong>{friendlyDate(d.date)}</strong><small>{d.precipitationMm.toFixed(1)} mm rain</small><small>{d.maxTempC.toFixed(0)}°C max</small></span>)}</div> : <p role="status">{forecastError ? `Forecast unavailable: ${forecastError}` : 'Fetching current forecast…'}</p>}</div>
             <p className="source-note">ICAR-NSRI recommends sowing soybean after monsoon onset and about 100 mm of rain; this prototype uses a 14-day retrospective rainfall approximation. Additional heat/rain exposure weights and the pass threshold are UNVALIDATED heuristics. Reanalysis is not a field measurement. No crop-loss, agronomic-safety or forecast-skill claim is made. <a href="https://icar-nsri.res.in/pdfdoc/Advisory2026/June%281-7%29%2C%202026.pdf" target="_blank" rel="noreferrer">ICAR soybean advisory ↗</a></p></section>
         </div>
-        <footer>SeedHedge · HACKVERSE 2026 <span>Prototype 0.3.1 · Stable strategy exploration · Screening heuristic requires expert validation</span></footer>
+        <footer>SeedHedge · HACKVERSE 2026 <span>Prototype 0.4 · Dual-approach comparison · Screening heuristic requires expert validation</span></footer>
       </div>
     </main>
   </div>;
