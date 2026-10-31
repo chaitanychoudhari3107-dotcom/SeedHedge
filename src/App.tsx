@@ -90,7 +90,7 @@ export default function App() {
           </section>
           <section className="panel farm-panel"><div className="panel-heading"><div><span className="section-label">02 / EXPLORE</span><h2>Virtual farm allocation</h2></div><span className="mini-pill">Interactive preview</span></div>
             <div className="farm-plot" role="img" aria-label="A stylized farm grid colored by the selected sowing allocation">
-              {Array.from({ length: 100 }, (_, i) => { const chosen = chosenDates.findIndex((a, j) => i < Math.round(chosenDates.slice(0, j + 1).reduce((t, x) => t + x.share, 0) * 100)); return <span key={i} className={`plot-cell plot-${Math.max(0, chosen)}`} />; })}
+              {Array.from({ length: 100 }, (_, i) => { const chosen = chosenDates.findIndex((_, j) => i < Math.round(chosenDates.slice(0, j + 1).reduce((t, x) => t + x.share, 0) * 100)); return <span key={i} className={`plot-cell plot-${Math.max(0, chosen)}`} />; })}
               <span className="farm-overlay">YOUR FIELD<br/><small>{area} ACRES</small></span>
             </div>
             <div className="legend"><span><i className="key-0"/> {friendlyDate(dates[0])}</span><span><i className="key-1"/> {friendlyDate(dates[1])}</span><span><i className="key-2"/> {friendlyDate(dates[2])}</span></div>
