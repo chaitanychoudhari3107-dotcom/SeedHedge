@@ -92,15 +92,8 @@ export async function fetchHistoricalReplay(region: Region, signal?: AbortSignal
     }
     return { id: `observed-${year}`, label: `${year} historical reanalysis (counterfactual analog)`, byDate };
   });
-  return {
-  region,
-  years: REPLAY_YEARS,
-  dailyByYear,
-  sourceUrls: results.map(r => r.sourceUrl),
-  retrievedAt: new Date().toISOString(),
-  scenarios,
-  diagnostics,
-};
+  return { region, years: REPLAY_YEARS, dailyByYear, sourceUrls: results.map(r => r.sourceUrl),
+    retrievedAt: new Date().toISOString(), scenarios, diagnostics };
 }
 
 // Retained for compatibility with the starter's original weather-context API.
