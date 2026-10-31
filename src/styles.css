@@ -27,3 +27,26 @@
 .plot-3,.key-3{background:#cc996b}.plot-4,.key-4{background:#8b94b7}
 .plot-empty{background:#dae3d3}
 .legend span{min-width:0;overflow-wrap:anywhere}
+
+/* v0.4: scoped dual-approach comparison, preserve existing design system */
+.v04-case,.v04-dual{margin-bottom:17px}
+.v04-case .panel-heading,.v04-dual .panel-heading{margin-bottom:12px}
+.v04-story{display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:11px;color:#617d68;line-height:1.7}
+.v04-story p{margin:0}
+.v04-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.v04-plan-card{background:#f8fbf5;border:1px solid #dbe9d7;border-radius:13px;padding:18px;min-width:0}
+.v04-plan-card:nth-child(2){background:#f6f9f3}
+.v04-plan-card h3{font-size:18px;color:#24543a;margin:9px 0 12px}
+.v04-plan-card p{font-size:11px;line-height:1.7;color:#647d6a}
+.v04-plan-card label{display:block;font-size:11px;font-weight:700;color:#42704b}
+.v04-plan-card input[type=range]{width:100%;accent-color:#478653;margin:9px 0}
+.v04-result{display:block;background:#e7f2df;border-radius:9px;padding:12px;color:#23583a;font-size:15px;line-height:1.5}
+.v04-plan-card .v04-caveat{background:#fff6e3;padding:10px;border-radius:8px;color:#856b42}
+.v04-plan-card .v04-analog{font-size:10px}
+.v04-verdict{background:#e8f5e6;padding:14px;border-radius:10px;font-size:12px;line-height:1.7;color:#386446;margin-top:14px}
+.v04-provenance{font-size:10px;color:#6b8c71;padding-top:12px;line-height:1.6}
+.v04-provenance a{color:#256b48;text-decoration:underline}
+.weather-recovery{padding:11px;border:1px solid #efc99d;background:#fff8eb;border-radius:9px;font-size:11px;line-height:1.6;color:#80532a;margin:10px 0}
+.weather-recovery p{overflow-wrap:anywhere}
+.weather-recovery button{border:1px solid #dbc3a1;background:white;border-radius:7px;padding:7px 9px;margin:4px 5px 3px 0;color:#714b2f;cursor:pointer}
+@media(max-width:900px){.v04-plan-grid,.v04-story{grid-template-columns:1fr}}

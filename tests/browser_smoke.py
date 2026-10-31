@@ -79,6 +79,24 @@ class SeedHedgeBrowserTests(unittest.TestCase):
         p.get_by_text('Show estimated sowing cost breakdown').click()
         self.assertIn('Repeat visits', p.locator('.cost-lines').inner_text())
 
+    def test_two_approaches_and_threshold_sensitivity(self):
+        p = self.page
+        self.assertIn('Plan A vs Plan B', p.locator('.v04-dual').inner_text())
+        self.assertIn('No date qualifies', p.locator('.v04-plan-card').first.inner_text())
+        p.locator('#rainfall-threshold').fill('50')
+        self.assertIn('20 Jun', p.locator('.v04-plan-card').first.inner_text())
+        self.assertIn('Open-Meteo', p.locator('.v04-provenance').inner_text())
+
+    def test_stable_stress_visible_and_history_not_reused_as_synthetic(self):
+        p = self.page
+        p.locator('#weather-mode').select_option('synthetic')
+        self.assertIn('Stress · three simulated', p.locator('.segmented + .input-help').inner_text())
+        p.get_by_role('button', name='Stable', exact=True).click()
+        self.assertIn('Stable · two simulated', p.locator('.segmented + .input-help').inner_text())
+        self.assertIn('cannot be evaluated', p.locator('.v04-plan-card').first.inner_text())
+        p.get_by_role('button', name='Stress test').click()
+        self.assertIn('Stress · three simulated', p.locator('.segmented + .input-help').inner_text())
+
     def test_region_change_and_api_provenance(self):
         p = self.page
         p.locator('#region').select_option('jalna')

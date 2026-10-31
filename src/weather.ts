@@ -3,12 +3,13 @@ import type { HazardScenario } from './engine.ts';
 import type { Region } from './regions.ts';
 
 export type HistoricalDay = { date: string; precipitationMm: number; maxTempC: number };
-export type HistoricalWeather = { days: HistoricalDay[]; fetchedAt: string; sourceUrl: string; timezone: string };
+export type HistoricalWeather = { days: HistoricalDay[]; fetchedAt: string; sourceUrl: string; timezone: string; transport: 'direct' | 'vercel-relay' };
 export type HistoricalReplay = {
   region: Region;
   years: number[];
   dailyByYear: Record<number, HistoricalDay[]>;
   sourceUrls: string[];
+  fetchTransports: ('direct' | 'vercel-relay')[];
   retrievedAt: string;
   scenarios: HazardScenario[];
   diagnostics: Record<string, Record<number, { precedingRainMm: number; followingRainMm: number; maxTempC: number; modeledExposure: number }>>;
@@ -20,14 +21,51 @@ export function historicalUrl(region: Region, year: number): string {
   const url = new URL('https://archive-api.open-meteo.com/v1/archive');
   Object.entries({ latitude: String(region.latitude), longitude: String(region.longitude),
     start_date: `${year}-06-01`, end_date: `${year}-07-10`, daily: 'precipitation_sum,temperature_2m_max',
-    timezone: 'Asia/Kolkata', precipitation_unit: 'mm', temperature_unit: 'celsius' })
+    timezone: 'Asia/Kolkata', precipitation_unit: 'mm', temperature_unit: 'celsius', models: 'era5' })
     .forEach(([key, value]) => url.searchParams.set(key, value));
   return url.toString();
 }
+/** Bounded retry for transient API failures; never substitutes invented data. */
+export async function fetchWithRetry(url: string, signal?: AbortSignal, context = 'weather'): Promise<Response> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
+    try {
+      const response = await fetch(url, { signal });
+      if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return response;
+    } catch (error) {
+      if (signal?.aborted || attempt === 2) {
+        throw new Error(`${context}: network request failed. Check the browser Network tab, connectivity or API access. ${error instanceof Error ? error.message : ''}`);
+      }
+    }
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => { signal?.removeEventListener('abort', aborted); resolve(); }, 450 * (attempt + 1));
+      const aborted = () => { clearTimeout(timer); reject(new DOMException('Request cancelled', 'AbortError')); };
+      signal?.addEventListener('abort', aborted, {once:true});
+    });
+  }
+  throw new Error(`${context}: API request could not complete`);
+}
+
 export async function fetchHistoricalYear(region: Region, year: number, signal?: AbortSignal): Promise<HistoricalWeather> {
   const url = historicalUrl(region, year);
-  const response = await fetch(url, { signal });
-  if (!response.ok) throw new Error(`Open-Meteo returned HTTP ${response.status} for ${year}`);
+  let response: Response | null = null;
+  let directError: string | null = null;
+  let transport: 'direct' | 'vercel-relay' = 'direct';
+  try { response = await fetchWithRetry(url, signal, `historical ${year}`); }
+  catch (error) { if (signal?.aborted) throw error; directError = error instanceof Error ? error.message : 'Unknown network error'; }
+  // Avoid relaying deterministic bad requests (400/401/403); only recover network/429/5xx failures.
+  if (response === null || response.status === 429 || response.status >= 500) {
+    const relay = `/api/historical?region=${encodeURIComponent(region.id)}&year=${year}`;
+    try {
+      const proxied = await fetchWithRetry(relay, signal, `same-origin relay ${year}`);
+      if (proxied.ok) { response = proxied; transport = 'vercel-relay'; }
+      else directError = `${directError ?? `Open-Meteo HTTP ${response?.status ?? 'unavailable'}`}; relay HTTP ${proxied.status}`;
+    } catch(error) {
+      if (signal?.aborted) throw error;
+      directError = `${directError ?? `Open-Meteo HTTP ${response?.status ?? 'unavailable'}`}; relay error: ${error instanceof Error?error.message:'unknown'}`;
+    }
+  }
+  if (!response?.ok) throw new Error(`Historical data unavailable for ${year}. ${directError ?? `HTTP ${response?.status ?? 'network error'}`}`);
   const data: unknown = await response.json();
   if (!data || typeof data !== 'object') throw new Error('Malformed weather response');
   const obj = data as Record<string, unknown>;
@@ -52,7 +90,7 @@ export async function fetchHistoricalYear(region: Region, year: number, signal?:
     }
     return { date, precipitationMm: p, maxTempC: t };
   });
-  return { days, fetchedAt: new Date().toISOString(), sourceUrl: url, timezone: 'Asia/Kolkata' };
+  return { days, fetchedAt: new Date().toISOString(), sourceUrl: url, timezone: 'Asia/Kolkata', transport };
 }
 
 /**
@@ -79,7 +117,11 @@ export function heuristicExposure(days: HistoricalDay[], monthDay: string) {
 }
 
 export async function fetchHistoricalReplay(region: Region, signal?: AbortSignal): Promise<HistoricalReplay> {
-  const results = await Promise.all(REPLAY_YEARS.map(year => fetchHistoricalYear(region, year, signal)));
+  const settled = await Promise.allSettled(REPLAY_YEARS.map(year => fetchHistoricalYear(region, year, signal)));
+  if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
+  const errors = settled.flatMap((item, i) => item.status === 'rejected' ? [`${REPLAY_YEARS[i]}: ${item.reason instanceof Error ? item.reason.message : String(item.reason)}`] : []);
+  if (errors.length) throw new Error(`Historical evidence incomplete (${errors.join('; ')}). Retry or choose a labeled synthetic demo; no real-data result was generated.`);
+  const results = settled.map(item => (item as PromiseFulfilledResult<HistoricalWeather>).value);
   const dailyByYear: Record<number, HistoricalDay[]> = {};
   const diagnostics: HistoricalReplay['diagnostics'] = {};
   for (let i = 0; i < results.length; i++) dailyByYear[REPLAY_YEARS[i]] = results[i].days;
@@ -93,7 +135,7 @@ export async function fetchHistoricalReplay(region: Region, signal?: AbortSignal
     return { id: `observed-${year}`, label: `${year} historical reanalysis (counterfactual analog)`, byDate };
   });
   return { region, years: REPLAY_YEARS, dailyByYear, sourceUrls: results.map(r => r.sourceUrl),
-    retrievedAt: new Date().toISOString(), scenarios, diagnostics };
+    retrievedAt: new Date().toISOString(), fetchTransports: results.map(r => r.transport), scenarios, diagnostics };
 }
 
 // Retained for compatibility with the starter's original weather-context API.
@@ -109,7 +151,7 @@ export async function fetchCurrentForecast(region: Region, signal?: AbortSignal)
     daily: 'precipitation_sum,temperature_2m_max', forecast_days: '7', timezone: 'Asia/Kolkata',
     precipitation_unit: 'mm', temperature_unit: 'celsius' })
     .forEach(([key, value]) => endpoint.searchParams.set(key, value));
-  const response = await fetch(endpoint, { signal });
+  const response = await fetchWithRetry(endpoint.toString(), signal, 'current forecast');
   if (!response.ok) throw new Error(`Forecast API returned HTTP ${response.status}`);
   const payload: unknown = await response.json();
   if (!payload || typeof payload !== 'object') throw new Error('Invalid forecast response');
