@@ -51,7 +51,7 @@ export function rainfallThresholdPlan(
 export type PlanComparison = { difference: number | null; sameDate: boolean; explanation: string };
 export function comparePlans(a: RainfallPlan, b: Strategy | null): PlanComparison {
   if (a.cost === null || !b || b.verdict !== 'acceptable') {
-    return {difference: null, sameDate: false, explanation: 'One or both approaches lack a rule-qualified result. No cost winner can be declared.'};
+    return {difference: null, sameDate: false, explanation: 'A direct cost comparison is unavailable because one or both approaches have no qualified result.'};
   }
   const difference = b.cost - a.cost;
   return {difference, sameDate: b.allocations.length === 1 && b.allocations[0].date === a.date,

@@ -81,11 +81,15 @@ class SeedHedgeBrowserTests(unittest.TestCase):
 
     def test_two_approaches_and_threshold_sensitivity(self):
         p = self.page
-        self.assertIn('Plan A vs Plan B', p.locator('.v04-dual').inner_text())
-        self.assertIn('No date qualifies', p.locator('.v04-plan-card').first.inner_text())
+        hub = p.locator('.decision-hub')
+        self.assertIn('Two methods. One farmer.', hub.inner_text())
+        self.assertIn('Plan B', hub.inner_text())
+        p.locator('#rainfall-threshold').fill('180')
+        self.assertIn('No date meets', hub.locator('.hub-plan-a').inner_text())
         p.locator('#rainfall-threshold').fill('50')
-        self.assertIn('20 Jun', p.locator('.v04-plan-card').first.inner_text())
-        self.assertIn('Open-Meteo', p.locator('.v04-provenance').inner_text())
+        self.assertIn('20 Jun', hub.locator('.hub-plan-a').inner_text())
+        p.locator('.hub-science summary').click()
+        self.assertIn('Open-Meteo', p.locator('.hub-science').inner_text())
 
     def test_stable_stress_visible_and_history_not_reused_as_synthetic(self):
         p = self.page
@@ -93,7 +97,7 @@ class SeedHedgeBrowserTests(unittest.TestCase):
         self.assertIn('Stress · three simulated', p.locator('.segmented + .input-help').inner_text())
         p.get_by_role('button', name='Stable', exact=True).click()
         self.assertIn('Stable · two simulated', p.locator('.segmented + .input-help').inner_text())
-        self.assertIn('cannot be evaluated', p.locator('.v04-plan-card').first.inner_text())
+        self.assertIn('Unavailable in synthetic mode', p.locator('.hub-plan-a').inner_text())
         p.get_by_role('button', name='Stress test').click()
         self.assertIn('Stress · three simulated', p.locator('.segmented + .input-help').inner_text())
 
