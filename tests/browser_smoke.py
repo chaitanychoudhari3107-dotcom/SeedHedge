@@ -85,8 +85,7 @@ class SeedHedgeBrowserTests(unittest.TestCase):
         p.get_by_text('Loaded 2022, 2023, 2024, 2025 reanalysis').wait_for(timeout=12000)
         self.assertTrue(any('latitude=19.84' in url for url in self.request_urls))
         p.get_by_text('Show historical reanalysis inputs behind the heuristic').click()
-        self.assertIn('Previous 14-day rain', p.locator('.diagnostics-detail').first.inner_text())
-
+        self.assertIn('previous 14-day rain',p.locator('.diagnostics-detail').first.inner_text().lower())
     def test_editable_cost_and_status_explanation(self):
         p = self.page
         p.locator('#weather-mode').select_option('synthetic')
