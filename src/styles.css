@@ -58,3 +58,99 @@
 @media(max-width:1100px){.hub-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.hub-detail-grid{grid-template-columns:1fr}}
 @media(max-width:750px){.decision-hub{padding:17px;border-radius:16px}.hub-header{flex-direction:column}.hub-state{white-space:normal}.hub-plan-grid,.hub-science-grid{grid-template-columns:1fr}.hub-plan{padding:17px}.hub-plan .hub-muted{min-height:0}.hub-sensitivity{grid-template-columns:repeat(4,minmax(0,1fr))}.hub-rain-row{grid-template-columns:93px 1fr}}
 @media(max-width:410px){.hub-kpis{grid-template-columns:1fr 1fr}.hub-kpis strong{font-size:11px}.hub-kpis>div{padding:11px}.hub-bmetrics strong{font-size:17px}.hub-bmetrics>div{padding:8px}.hub-rain-row{grid-template-columns:1fr}.hub-rain-row>div:first-child{flex-direction:row;justify-content:space-between}}
+
+/* 0.4.2 farmer-first accessibility pass; no changes to existing layout foundations */
+.farmer-first{background:linear-gradient(125deg,#eff7e9,#f8fcf4);border:1px solid #cfe4c8;border-radius:17px;padding:24px;margin:12px 0 20px;color:#2b5940}
+.farmer-first h2{font:800 clamp(22px,2.3vw,29px) Manrope,sans-serif;margin:10px 0;line-height:1.3}
+.farmer-first p{font-size:13px;line-height:1.75;margin:6px 0 16px;max-width:880px}
+.farmer-first-actions{display:flex;flex-wrap:wrap;gap:10px}.farmer-first-actions a{border:1px solid #bcd8b5;background:#fff;color:#28583a;padding:10px 15px;border-radius:9px;text-decoration:none;font-size:12px;font-weight:800}
+.farmer-setup{margin:16px 0;padding:22px;max-width:none}.farmer-setup>label,.farmer-setup>input,.farmer-setup>.field-select,.farmer-setup>.input-help{max-width:540px}
+.window-fields{margin:18px 0 20px;padding:16px;border:1px solid #d2e2cf;border-radius:12px;min-width:0;max-width:820px}
+.window-fields legend{font-size:14px;font-weight:800;color:#2b5f3d;padding:0 6px}.window-fields small{font-weight:500;color:#829b88}
+.window-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:12px 0}.window-inputs label{font-size:12px;font-weight:800;color:#3b6a4b}
+.window-inputs input{width:100%;box-sizing:border-box;display:block;border:1px solid #bfcfbe;border-radius:9px;padding:12px;color:#284e38;background:white;margin:6px 0;font-size:14px}
+.window-error{background:#fff3e9;border:1px solid #e9ccac;color:#895332;padding:13px;border-radius:9px;line-height:1.6;font-size:12px}
+.window-success{background:#f1f8ec;color:#326b47;padding:11px;border-radius:9px;font-size:12px;line-height:1.6}
+.window-fields .date-toggles button{font-size:12px;min-height:40px}.window-fields .date-toggles small{display:block;font-size:9px;color:inherit;font-weight:500;margin-top:3px}
+.farm-help{margin:16px 0}.help-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}.help-shortcuts button{background:#edf6e8;border:1px solid #cde0ca;border-radius:30px;color:#285e42;font-size:12px;padding:9px 12px;cursor:pointer}
+.help-thread{border:1px solid #e5eddf;background:#f9fcf8;border-radius:12px;min-height:62px;max-height:250px;overflow-y:auto;padding:12px}.help-message{border-radius:9px;padding:12px;margin:7px 0;font-size:12px;line-height:1.7}.help-farmer{background:#e7f2e4;color:#254d38}.help-helper{background:white;border:1px solid #e1eade;color:#3c6650}
+.help-compose{display:flex;gap:9px;margin-top:12px}.help-compose input{flex:1;min-width:0;border-radius:9px;border:1px solid #d3decf;padding:12px;font-size:13px}.help-compose button{border:0;border-radius:9px;background:#2d6745;color:white;font-weight:800;font-size:12px;padding:10px 16px;cursor:pointer}.help-compose button:disabled{opacity:.5;cursor:not-allowed}
+.voice-explainer .voice-tools{margin:12px 0}.voice-status{font-size:11px;color:#516e5c;line-height:1.6}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+/* The main comparison is a decision dashboard; older controls remain below for expert exploration. */
+.studio-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}.studio-grid .farm-panel,.studio-grid .decision{grid-column:auto}
+@media(max-width:900px){.studio-grid{grid-template-columns:1fr}.farmer-setup{padding:17px}.window-inputs{grid-template-columns:1fr}.help-compose{flex-direction:column}.help-compose button{min-height:44px}.farmer-first-actions a{flex:1;text-align:center}}
+@media(max-width:640px){.farmer-first{padding:18px}.farmer-first h2{font-size:22px}.window-fields{padding:12px}.window-inputs input{font-size:16px}.help-shortcuts button{min-height:44px}.studio-grid .farm-panel{grid-column:auto}}
+
+/* Readable default labels while keeping extended methods collapsible. */
+.farmer-setup label,.farmer-setup legend,.farmer-setup .field-select{font-size:13px;line-height:1.5}
+.farmer-setup .input-help,.farmer-setup .source-state,.farmer-setup .info-card{font-size:12px;line-height:1.7}
+.farmer-setup #region,.farmer-setup #area,.farmer-setup #weather-mode{min-height:43px}
+.decision-hub .hub-muted,.decision-hub .hub-footnote,.decision-hub .hub-verdict p{font-size:12px;line-height:1.65}
+.decision-hub .hub-answer strong{line-height:1.4;overflow-wrap:anywhere}
+.farm-help input,.farm-help button,.farmer-first a,.farmer-setup button{font-family:inherit}
+@media(prefers-reduced-motion:reduce){.farmer-first *,.farm-help *,.decision-hub *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Historical replay date window recovery: prominent and keyboard accessible. */
+.window-error p{margin:7px 0 12px}.window-swap{min-height:42px;border:1px solid #b47a4e;border-radius:9px;padding:9px 14px;background:#fff;color:#784725;font-size:13px;font-weight:800;cursor:pointer}.window-swap:hover{background:#fff9f1}.window-swap:focus-visible{outline:3px solid #d3a66f;outline-offset:3px}
+
+/* Guided farmer flow (review only): one clear stage at a time. */
+.guided-content{max-width:1240px;padding-top:24px}
+.guide-intro{padding:12px 4px 20px}
+.guide-intro h1{font:800 clamp(26px,3vw,40px)/1.14 Manrope,sans-serif;letter-spacing:-1px;color:#234735;margin:10px 0}
+.guide-intro p{max-width:770px;font-size:14px;line-height:1.65;color:#5d7968;margin:0}
+.guide-steps{scroll-margin-top:18px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:8px 0 19px}
+.guide-step{border:1px solid #d7e6d7;background:#fff;color:#4b6d55;text-align:left;padding:12px 14px;border-radius:13px;display:flex;gap:10px;align-items:center;font:700 12px 'DM Sans',sans-serif;cursor:pointer;min-width:0}
+.guide-step-number{display:grid;place-items:center;flex:0 0 28px;height:28px;background:#edf5e8;color:#3d6b4b;border-radius:50%;font-size:13px}
+.guide-step-active{background:#eaf5e7;color:#1d5032;border-color:#70a76d;box-shadow:inset 0 0 0 1px #70a76d}
+.guide-step-active .guide-step-number{background:#255e3c;color:#fff}
+.guide-step:disabled{opacity:.5;cursor:not-allowed}
+.guide-step:focus-visible,.guide-actions button:focus-visible{outline:3px solid #97bd7e;outline-offset:3px}
+.guide-panel{min-height:280px}
+.guide-step-heading{margin:0 0 15px;padding:16px 19px;border:1px solid #dce8d7;border-radius:15px;background:#f4f9f0}
+.guide-step-heading>span{font-size:10px;letter-spacing:1.6px;font-weight:800;color:#6f9c68}
+.guide-step-heading h2{font:800 23px Manrope,sans-serif;color:#214f37;margin:7px 0 5px}
+.guide-step-heading p{font-size:12px;line-height:1.65;color:#617b69;margin:0;max-width:850px}
+.guide-panel .farmer-setup{padding:23px;max-width:none}
+.guide-panel .config>label{max-width:760px}
+.guide-panel .window-fields{max-width:none}
+.guide-spacing-label{display:block;font-weight:800;font-size:12px;color:#315d40;margin:10px 0}
+.guide-spacing-label .field-select{max-width:350px}
+.guide-optional-costs,.guide-advanced{margin-top:16px;background:#fff;border:1px solid #dfe9dc;border-radius:16px;padding:0 16px 15px}
+.guide-optional-costs>summary,.guide-advanced>summary{padding:17px 2px;font-size:13px;font-weight:800;color:#315f42;cursor:pointer;list-style:revert}
+.guide-optional-costs>.costs,.guide-advanced>.panel{margin:6px 0 16px}
+.guide-panel .decision-hub{margin-bottom:16px}
+.guide-panel .hub-view-rain .hub-plan-grid,.guide-panel .hub-view-split .hub-plan-grid{grid-template-columns:minmax(0,1fr)}
+.guide-panel .hub-view-rain .hub-detail-grid{grid-template-columns:minmax(0,1fr)}
+.guide-panel .hub-view-split .hub-detail-grid{display:none}
+.guide-panel .hub-view-rain .hub-plan,.guide-panel .hub-view-split .hub-plan{max-width:none}
+.guide-panel .studio-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,.9fr);align-items:start}
+.guide-panel .studio-grid>.panel{min-width:0}
+.guide-panel .farmer-first{margin-top:0}
+.guide-panel .stats{margin-top:15px}
+.guide-panel .analysis-grid{margin:12px 0}
+.guide-panel .weather-panel{margin:12px 0}
+.guide-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}
+.guide-actions button{cursor:pointer;border-radius:12px;border:1px solid #d2e3d2;padding:15px 18px;font-size:13px;font-weight:800}
+.guide-actions .guide-next{background:#245e3b;color:#fff;margin-left:auto;border-color:#245e3b;box-shadow:0 4px 11px #245e3b1c}
+.guide-actions .guide-back{background:#fff;color:#315c42}
+.guide-actions button:disabled{opacity:.45;cursor:not-allowed}
+.guide-panel .farmer-first-actions button{background:#eef6ea;color:#315f42;border:1px solid #d9e8d5;border-radius:8px;padding:9px 12px;cursor:pointer;font-weight:700}
+.sidebar button.nav-item{appearance:none;font:inherit;width:100%;border:0;text-align:left;cursor:pointer}
+@media(max-width:900px){.guide-panel .studio-grid{grid-template-columns:1fr}.guide-panel .studio-grid .farm-panel{grid-column:auto}.guide-panel .studio-grid .decision{grid-column:auto}}
+@media(max-width:660px){.guided-content{padding:16px 12px}.guide-intro h1{font-size:27px}.guide-steps{gap:6px;grid-template-columns:repeat(4,minmax(0,1fr))}.guide-step{flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;padding:9px 3px;font-size:10px;line-height:1.25}.guide-step-number{flex:none;width:24px;height:24px}.guide-step-heading{padding:15px}.guide-step-heading h2{font-size:20px}.guide-panel .farmer-setup{padding:16px}.guide-actions button{width:100%}.guide-panel .hub-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.guide-panel .hub-plan-grid,.guide-panel .hub-detail-grid{grid-template-columns:1fr}}
+.guide-more-rows{display:block;margin:12px auto;border:1px solid #bad7ba;background:#eef6e8;color:#2a6943;font-size:12px;font-weight:800;padding:12px 18px;border-radius:10px;cursor:pointer}
+.sidebar button.nav-item{font-size:13px;font-weight:700}
+.sidebar button.nav-item:disabled{opacity:.45;cursor:not-allowed}
+.guide-step-heading:focus{outline:0}
+
+/* v0.4.4 — farmer-facing explanations, visible weather mode, report */
+.guide-mode-switch{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,320px);align-items:center;gap:12px 18px;background:#f0f6eb;border:1px solid #d7e7d0;border-radius:17px;padding:16px 19px;margin:8px 0 22px}
+.guide-mode-switch strong{display:block;color:#28563b;font-size:14px}.guide-mode-switch p{font-size:12px;line-height:1.55;color:#52735c;margin:5px 0}.guide-mode-switch label{font-size:11px;font-weight:800;color:#496d50}.guide-mode-switch .field-select{margin:4px 0}.guide-mode-switch .segmented{grid-column:1/-1;max-width:460px}.guide-mode-switch .reset-btn{justify-self:start}
+.hub-farmer-explain{margin:12px 0 14px;padding:15px 17px;background:#f7faf2;border:1px solid #dce9d5;border-radius:13px;color:#386347;line-height:1.6}.hub-farmer-explain strong{display:block;font-size:13px;color:#21583a}.hub-farmer-explain p{font-size:12px;margin:6px 0}.hub-choice-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.hub-choice-compare span{display:block;background:white;border:1px solid #e4eddd;padding:11px;border-radius:10px;font-size:11px}.hub-choice-compare b{display:block;margin-top:5px;color:#29573b;overflow-wrap:anywhere}
+.hub-date-evidence{margin-top:18px;padding:14px;border:1px solid #e3ebdb;border-radius:12px;background:#f8fbf5}.hub-date-evidence>strong{font-size:13px;color:#2e6144}.hub-date-evidence>p{font-size:11px;line-height:1.6;color:#607e66}.hub-date-evidence-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.hub-date-evidence-list>div{background:white;border-radius:9px;border:1px solid #e8eee1;padding:10px;display:flex;flex-direction:column;gap:4px}.hub-date-evidence-list span{font-size:11px;color:#526e56}.hub-date-evidence-list span:first-child{font-weight:800;color:#2b5842}
+.farm-report{margin:24px 0;background:white;border:1px solid #dbe6d5;border-radius:21px;padding:25px;box-shadow:0 4px 20px #335f2711;color:#294d38}
+.report-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.report-heading h2{font:800 clamp(21px,2.3vw,28px) Manrope,sans-serif;margin:8px 0;color:#244c36}.report-heading p,.report-intro{font-size:12px;color:#597564;line-height:1.75}.report-print{border:0;background:#296448;color:#fff;border-radius:10px;padding:12px 15px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.report-print:hover{background:#215337}.report-source{display:flex;flex-wrap:wrap;gap:9px 15px;align-items:center;padding:13px;margin:16px 0;border-radius:10px;font-size:11px;line-height:1.6;background:#eff6ec;color:#385f42}.report-source strong{letter-spacing:.6px;font-size:10px}.report-source.report-demo{background:#fff4d9;color:#805d1b}
+.report-farm-grid,.report-cost-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.report-farm-grid>div,.report-cost-grid>div{border:1px solid #e1eadf;border-radius:12px;padding:14px;background:#f8faf6;min-width:0}.report-farm-grid small,.report-cost-grid small{display:block;font-size:10px;color:#70877a;line-height:1.5}.report-farm-grid strong,.report-cost-grid strong{display:block;margin-top:5px;font-size:13px;color:#2f6044;overflow-wrap:anywhere}.report-lead-grid,.report-option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:18px 0}.report-lead-grid article,.report-option-grid article{padding:16px;background:#f3f8ee;border:1px solid #dfe9d9;border-radius:12px}.report-lead-grid article h3,.report-option-grid h4{margin:0 0 9px;font-size:15px;color:#285c3f}.report-lead-grid article p{font-size:13px;line-height:1.65}.report-lead-grid article small{font-size:11px;color:#6f8975;line-height:1.5;display:block}.farm-report>h3,.report-forecast>h3{font-size:16px;margin:28px 0 8px;color:#285c42}.report-table-wrap{max-height:370px;overflow:auto;border:1px solid #e2ebdf;border-radius:10px}.report-data-table{width:100%;border-collapse:collapse;min-width:680px;font-size:11px}.report-data-table th,.report-data-table td{padding:10px 12px;border-bottom:1px solid #e9eee6;text-align:left}.report-data-table th{background:#eff6e9;color:#496c54;position:sticky;top:0}.report-data-table td{color:#45634e}.report-more-years,.report-science{margin:12px 0;border:1px solid #e4ecdf;padding:12px 15px;border-radius:11px}.report-more-years summary,.report-science summary{font-weight:800;font-size:12px;cursor:pointer;color:#2b6144}.report-more-years .report-table-wrap{margin-top:12px}.report-option{display:flex;flex-direction:column;gap:5px;padding:9px 0;border-bottom:1px solid #e2eadd;font-size:11px}.report-option span{color:#3d624b}.report-option strong{color:#315d41}.report-unavailable,.report-limit{background:#fff7e6;border-radius:9px;padding:13px 15px;font-size:11px;color:#826941;line-height:1.7}.report-forecast{margin-top:22px;border-top:1px solid #e6eee3;padding-top:8px}.report-forecast>p{font-size:11px;color:#60836c}.report-forecast-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px}.report-forecast-days span{font-size:11px;background:#f1f7ed;padding:9px;border-radius:8px;color:#426950}.report-source-links{display:flex;gap:12px;flex-wrap:wrap;font-size:11px}.report-source-links a,.report-forecast a{color:#257b54;text-decoration:underline;font-size:11px}.report-science p{font-size:11px;line-height:1.8;color:#607965}
+@media(max-width:860px){.guide-mode-switch{grid-template-columns:1fr}.hub-date-evidence-list,.hub-choice-compare{grid-template-columns:1fr}.report-farm-grid,.report-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-lead-grid,.report-option-grid{grid-template-columns:1fr}}
+@media(max-width:550px){.report-heading{flex-direction:column;align-items:stretch}.report-print{width:100%}.farm-report{padding:14px;margin:16px 0}.report-farm-grid,.report-cost-grid{grid-template-columns:1fr 1fr}.report-farm-grid>div,.report-cost-grid>div{padding:10px}.report-farm-grid strong,.report-cost-grid strong{font-size:11px}.hub-farmer-explain{padding:12px}.report-heading h2{font-size:21px}}
+@media print{body *{visibility:hidden!important}.farm-report,.farm-report *{visibility:visible!important}.farm-report{position:absolute!important;top:0;left:0;margin:0;width:100%;border:0;box-shadow:none;padding:0}.report-print{display:none!important}.report-table-wrap{max-height:none;overflow:visible}.report-data-table{min-width:0;font-size:9px}.farm-report .report-lead-grid,.farm-report .report-option-grid{break-inside:avoid}.report-more-years:not([open]){display:none}}

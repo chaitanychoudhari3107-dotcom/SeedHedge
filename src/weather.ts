@@ -15,6 +15,8 @@ export type HistoricalReplay = {
   diagnostics: Record<string, Record<number, { precedingRainMm: number; followingRainMm: number; maxTempC: number; modeledExposure: number }>>;
 };
 export const REPLAY_YEARS = [2022, 2023, 2024, 2025];
+// Legacy default example retained only for compatibility with existing tests and documentation.
+// Actual candidates now come from the farmer-selected historical-replay window.
 export const SOWING_DATES = ['2024-06-20', '2024-06-24', '2024-06-28', '2024-07-02', '2024-07-05'];
 
 export function historicalUrl(region: Region, year: number): string {
@@ -30,7 +32,8 @@ export async function fetchWithRetry(url: string, signal?: AbortSignal, context 
   for (let attempt = 0; attempt < 3; attempt++) {
     if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
     try {
-      const response = await fetch(url, { signal });
+      const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000);
+      const response = await fetch(url, { signal: requestSignal });
       if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status) || attempt === 2) return response;
     } catch (error) {
       if (signal?.aborted || attempt === 2) {
@@ -45,6 +48,17 @@ export async function fetchWithRetry(url: string, signal?: AbortSignal, context 
   }
   throw new Error(`${context}: API request could not complete`);
 }
+
+export class IncompleteReplayError extends Error {
+  readonly loadedYears: number[];
+  readonly failedYears: number[];
+  constructor(loadedYears: number[], failedYears: number[], details: string) {
+    super(`Only ${loadedYears.length}/${REPLAY_YEARS.length} historical years loaded (${loadedYears.join(', ') || 'none'}). Missing: ${failedYears.join(', ')}. ${details} No historical recommendation was made.`);
+    this.name = 'IncompleteReplayError';
+    this.loadedYears = loadedYears; this.failedYears = failedYears;
+  }
+}
+
 
 export async function fetchHistoricalYear(region: Region, year: number, signal?: AbortSignal): Promise<HistoricalWeather> {
   const url = historicalUrl(region, year);
@@ -120,7 +134,11 @@ export async function fetchHistoricalReplay(region: Region, signal?: AbortSignal
   const settled = await Promise.allSettled(REPLAY_YEARS.map(year => fetchHistoricalYear(region, year, signal)));
   if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
   const errors = settled.flatMap((item, i) => item.status === 'rejected' ? [`${REPLAY_YEARS[i]}: ${item.reason instanceof Error ? item.reason.message : String(item.reason)}`] : []);
-  if (errors.length) throw new Error(`Historical evidence incomplete (${errors.join('; ')}). Retry or choose a labeled synthetic demo; no real-data result was generated.`);
+  if (errors.length) throw new IncompleteReplayError(
+    REPLAY_YEARS.filter((_, i) => settled[i].status === 'fulfilled'),
+    REPLAY_YEARS.filter((_, i) => settled[i].status === 'rejected'),
+    errors.join('; ')
+  );
   const results = settled.map(item => (item as PromiseFulfilledResult<HistoricalWeather>).value);
   const dailyByYear: Record<number, HistoricalDay[]> = {};
   const diagnostics: HistoricalReplay['diagnostics'] = {};
@@ -136,6 +154,25 @@ export async function fetchHistoricalReplay(region: Region, signal?: AbortSignal
   });
   return { region, years: REPLAY_YEARS, dailyByYear, sourceUrls: results.map(r => r.sourceUrl),
     retrievedAt: new Date().toISOString(), fetchTransports: results.map(r => r.transport), scenarios, diagnostics };
+}
+
+/** Re-evaluate historical evidence for the same farmer-generated candidate dates
+ * in both Plan A and Plan B. No API refetch or synthetic substitution occurs. */
+export function replayForDates(replay: HistoricalReplay, dates: string[]): HistoricalReplay {
+  const diagnostics: HistoricalReplay['diagnostics'] = {};
+  const scenarios = replay.years.map(year => {
+    const byDate: Record<string, number | null> = {};
+    for (const date of dates) {
+      const detail = heuristicExposure(replay.dailyByYear[year] ?? [], date.slice(5));
+      byDate[date] = detail?.modeledExposure ?? null;
+      if (detail) {
+        diagnostics[date] ??= {};
+        diagnostics[date][year] = detail;
+      }
+    }
+    return {id: `observed-${year}`, label: `${year} ERA5 historical reanalysis (counterfactual analog)`, byDate};
+  });
+  return {...replay, diagnostics, scenarios};
 }
 
 // Retained for compatibility with the starter's original weather-context API.
