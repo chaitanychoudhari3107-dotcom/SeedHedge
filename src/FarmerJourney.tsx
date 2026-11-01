@@ -111,7 +111,13 @@ export default function FarmerJourney(p:Props) {
   return <div className="farmer-app" lang={language==='mr'?'mr':language==='hi'?'hi':'en'}>
     <header className="farmer-top">
       <div className="farmer-brand"><div className="farmer-mark" aria-hidden="true">✳</div><div><strong>SeedHedge</strong><small>{txt('Farmer view')}</small></div></div>
-      <div className="farmer-top-actions"><label className="farmer-language"><span className="sr-only">Language</span><select aria-label="Language / भाषा" value={language} onChange={e=>setLanguage(e.target.value as FarmerLanguage)}>{choices.map(c=><option value={c.value} key={c.value}>{c.label}</option>)}</select></label><button type="button" className="farmer-link-button" onClick={p.openDetailedView}>{txt('Detailed View')}</button></div>
+      <div className="farmer-top-actions">
+        <nav className="seedhedge-view-tabs" aria-label="Choose view">
+          <span className="seedhedge-view-tab current" aria-current="page">{txt('Farmer view')}</span>
+          <button type="button" className="seedhedge-view-tab" onClick={p.openDetailedView}>{txt('Detailed View')}</button>
+        </nav>
+        <label className="farmer-language"><span className="sr-only">Language</span><select aria-label="Language / भाषा" value={language} onChange={e=>setLanguage(e.target.value as FarmerLanguage)}>{choices.map(c=><option value={c.value} key={c.value}>{c.label}</option>)}</select></label>
+      </div>
     </header>
     <main className="farmer-wrap">
       <div className="farmer-intro"><span className="farmer-eyebrow">SEEDHEDGE · SOYBEAN</span><h1>{txt('SeedHedge helps you compare planting dates using past rain and estimated costs.')}</h1></div>

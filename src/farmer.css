@@ -20,3 +20,9 @@
 @media(max-width:720px){.farmer-top{padding:12px 14px}.farmer-brand strong{font-size:20px}.farmer-wrap{padding:20px 12px 35px}.farmer-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.farmer-step{font-size:12px;padding:8px}.farmer-step span{width:24px;height:24px}.farmer-fields.two,.farmer-plan-grid,.farmer-why-next{grid-template-columns:1fr}.farmer-rain-row summary{grid-template-columns:1fr 1fr;gap:8px}.farmer-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.farmer-language select{min-width:90px}.farmer-link-button{font-size:12px}.farmer-bottom-actions button{padding:11px 12px;font-size:13px}}
 @media(max-width:390px){.farmer-summary{grid-template-columns:1fr}.farmer-step{font-size:11px}}
 @media print{.farmer-top,.farmer-steps,.farmer-intro,.farmer-bottom-actions,.farmer-bottom-note,.farmer-results-actions,.farmer-help{display:none!important}.farmer-app,.farmer-screen{background:#fff!important;box-shadow:none!important;border:0!important}.farmer-screen{padding:0}.farmer-wrap{padding:0;max-width:none}.farmer-section{break-inside:auto}.farmer-final-head,.farmer-why-next article,.farmer-summary>div{break-inside:avoid}}
+
+/* Farmer top-bar controls (v0.4.5 navigation) */
+.farmer-top-actions{min-width:0}
+@media(max-width:760px){.farmer-top{flex-wrap:wrap}.farmer-top-actions{width:100%;justify-content:space-between;gap:10px;flex-wrap:wrap}}
+@media(max-width:410px){.farmer-top-actions .seedhedge-view-tabs{flex:1}.farmer-top-actions .seedhedge-view-tab{font-size:12px;padding:7px 9px}}
+@media print{.seedhedge-view-tabs{display:none!important}}

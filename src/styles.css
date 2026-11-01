@@ -154,3 +154,13 @@
 @media(max-width:860px){.guide-mode-switch{grid-template-columns:1fr}.hub-date-evidence-list,.hub-choice-compare{grid-template-columns:1fr}.report-farm-grid,.report-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-lead-grid,.report-option-grid{grid-template-columns:1fr}}
 @media(max-width:550px){.report-heading{flex-direction:column;align-items:stretch}.report-print{width:100%}.farm-report{padding:14px;margin:16px 0}.report-farm-grid,.report-cost-grid{grid-template-columns:1fr 1fr}.report-farm-grid>div,.report-cost-grid>div{padding:10px}.report-farm-grid strong,.report-cost-grid strong{font-size:11px}.hub-farmer-explain{padding:12px}.report-heading h2{font-size:21px}}
 @media print{body *{visibility:hidden!important}.farm-report,.farm-report *{visibility:visible!important}.farm-report{position:absolute!important;top:0;left:0;margin:0;width:100%;border:0;box-shadow:none;padding:0}.report-print{display:none!important}.report-table-wrap{max-height:none;overflow:visible}.report-data-table{min-width:0;font-size:9px}.farm-report .report-lead-grid,.farm-report .report-option-grid{break-inside:avoid}.report-more-years:not([open]){display:none}}
+
+/* SeedHedge: shared top-bar view tabs (v0.4.5 navigation) */
+.seedhedge-view-tabs{display:inline-flex;align-items:center;gap:4px;padding:4px;background:#eef4e9;border:1px solid #d5e4d5;border-radius:13px;flex-shrink:0}
+.seedhedge-view-tab{font-family:inherit;font-size:13px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;min-height:38px;white-space:nowrap;padding:8px 14px;border:0;border-radius:10px;color:#365c45;background:transparent;line-height:1.2}
+button.seedhedge-view-tab{cursor:pointer}
+button.seedhedge-view-tab:hover{background:#e2eddd}
+button.seedhedge-view-tab:focus-visible{outline:3px solid #b07b28;outline-offset:2px}
+.seedhedge-view-tab.current{background:#195439;color:white;box-shadow:0 2px 6px #173e2730}
+@media(max-width:860px){.topbar{padding:11px 16px;min-height:69px;height:auto;gap:10px;flex-wrap:wrap}.topbar .breadcrumb{display:none}.topbar .top-actions{margin-left:auto}}
+@media(max-width:520px){.topbar .top-actions{display:none}.topbar .mobile-menu-btn{margin-left:auto}.topbar .seedhedge-view-tab{font-size:12px;padding:7px 10px;min-height:36px}}
