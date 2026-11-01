@@ -191,7 +191,10 @@ export default function App() {
       <div className="sidebar-bottom"><div className="badge-light">● Research prototype</div><p>Made for HACKVERSE 2026<br/>No validated crop-safety claims</p></div>
     </aside>
     <main className="main">
-      <header className="topbar"><button type="button" onClick={()=>setDetailedView(false)} className="reset-btn">← Farmer view</button><button type="button" className="mobile-menu-btn" aria-expanded={mobileNavOpen} aria-controls="app-navigation" onClick={() => setMobileNavOpen(v => !v)}>☰ <span>Menu</span></button><div className="breadcrumb">SeedHedge <span>/</span> Strategy Studio</div><div className="top-actions">{weatherMode === 'historical' ? 'Historical replay' : 'Synthetic demo'} · {region.label} <span className="avatar">SH</span></div></header>
+      <header className="topbar"><nav className="seedhedge-view-tabs" aria-label="Choose view">
+        <button type="button" className="seedhedge-view-tab" onClick={()=>setDetailedView(false)}>Farmer View</button>
+        <span className="seedhedge-view-tab current" aria-current="page">Detailed View</span>
+      </nav><button type="button" className="mobile-menu-btn" aria-expanded={mobileNavOpen} aria-controls="app-navigation" onClick={() => setMobileNavOpen(v => !v)}>☰ <span>Menu</span></button><div className="breadcrumb">SeedHedge <span>/</span> Strategy Studio</div><div className="top-actions">{weatherMode === 'historical' ? 'Historical replay' : 'Synthetic demo'} · {region.label} <span className="avatar">SH</span></div></header>
       <div className="content guided-content" id="studio">
         <header className="guide-intro">
           <span className="section-label">SEEDHEDGE · HISTORICAL REPLAY DEMONSTRATION</span>

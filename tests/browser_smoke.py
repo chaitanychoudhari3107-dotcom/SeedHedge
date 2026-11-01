@@ -304,6 +304,30 @@ class FarmerFirstJourneyTests(unittest.TestCase):
     def at(self,n):
         self.page.locator('.farmer-step').nth(n).click()
 
+    def test_view_tabs_live_in_the_top_bar_and_preserve_farm_inputs(self):
+        p = self.page
+        tabs = p.locator('.farmer-top .seedhedge-view-tabs')
+        assert tabs.is_visible()
+        assert tabs.locator(':scope > *').all_text_contents() == ['Farmer view', 'Detailed View']
+        assert tabs.locator('[aria-current="page"]').inner_text() == 'Farmer view'
+        p.get_by_label('Language / भाषा').select_option('mr')
+        self.at(1)
+        p.locator('#farmer-area').fill('4')
+        tabs.get_by_role('button').click()
+        detailed = p.locator('.topbar .seedhedge-view-tabs')
+        assert detailed.is_visible()
+        assert detailed.locator(':scope > *').all_text_contents() == ['Farmer View', 'Detailed View']
+        assert detailed.locator('[aria-current="page"]').inner_text() == 'Detailed View'
+        assert p.locator('#area').input_value() == '4'
+        detailed.get_by_role('button', name='Farmer View').click()
+        assert p.locator('.farmer-top .seedhedge-view-tabs [aria-current="page"]').is_visible()
+        assert p.get_by_label('Language / भाषा').input_value() == 'mr'
+        self.at(1)
+        assert p.locator('#farmer-area').input_value() == '4'
+        p.set_viewport_size({'width':390,'height':844})
+        assert p.locator('.farmer-top .seedhedge-view-tabs').is_visible()
+        assert p.locator('.farmer-top .seedhedge-view-tabs button').is_visible()
+
     def test_four_sequential_actions_and_inputs_survive_navigation(self):
         p=self.page
         assert p.locator('.farmer-step').count()==4
