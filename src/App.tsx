@@ -1,3 +1,4 @@
+import FarmerJourney from './FarmerJourney.tsx';
 import DecisionDashboard from './DecisionDashboard.tsx';
 import FarmHelp from './FarmHelp.tsx';
 import VoiceExplainer from './VoiceExplainer.tsx';
@@ -42,6 +43,7 @@ function describeWeatherFailure(error: string): string {
   return 'Historical weather could not be loaded for all required years. Retry or use the clearly labeled fictional demo.';
 }
 export default function App() {
+  const [detailedView, setDetailedView] = useState(false);
   const [area, setArea] = useState(2);
   const [demoExample, setDemoExample] = useState(true);
   const [windowStart, setWindowStart] = useState(DEMO_WINDOW_START);
@@ -162,6 +164,22 @@ export default function App() {
       setDatabaseNote(`Loaded example rates for ${region.label} from PostgreSQL. Edit them below; they are NOT verified market prices.`);
     } catch (e: unknown) { setDatabaseNote(e instanceof Error ? e.message : 'Database unavailable'); }
   };
+  if (!detailedView) return <FarmerJourney
+    openDetailedView={() => setDetailedView(true)}
+    regionId={regionId} setRegionId={v=>{setRegionId(v);setSelectedId(null);}}
+    area={area} setArea={setArea}
+    windowStart={windowStart} setWindowStart={v=>{setWindowStart(v);setDemoExample(false);setSelectedId(null);}}
+    windowEnd={windowEnd} setWindowEnd={v=>{setWindowEnd(v);setDemoExample(false);setSelectedId(null);}}
+    intervalDays={intervalDays} setIntervalDays={v=>{setIntervalDays(v);setDemoExample(false);setSelectedId(null);}}
+    generatedDates={generatedDates} enabledDates={enabledDates} excludedDates={excludedDates} setExcludedDates={v=>{setExcludedDates(v);setSelectedId(null);}}
+    windowError={candidateWindow.error} canSwapDates={canSwapDates}
+    weatherMode={weatherMode} setWeatherMode={v=>{setWeatherMode(v);setSelectedId(null);}}
+    simulation={mode} setSimulation={v=>{setMode(v);setSelectedId(null);}}
+    weather={replay} loadingWeather={loadingWeather} weatherError={friendlyWeatherError} partialYears={partialYears} onRetry={()=>setReloadKey(v=>v+1)}
+    forecast={currentForecast} forecastError={forecastError}
+    rates={rates} setRates={setRates} threshold={rainfallThreshold} setThreshold={setRainfallThreshold}
+    winner={canEvaluate?result.winner:null} strategies={canEvaluate?result.strategies:[]}
+  />;
   return <div className="app">
     <aside id="app-navigation" className={`sidebar ${mobileNavOpen ? 'mobile-open' : ''}`}>
       <div className="brand"><span className="brand-icon">✳</span><span>seed<span className="brand-bold">hedge</span><small>AGRICULTURAL INTELLIGENCE</small></span></div>
@@ -173,7 +191,7 @@ export default function App() {
       <div className="sidebar-bottom"><div className="badge-light">● Research prototype</div><p>Made for HACKVERSE 2026<br/>No validated crop-safety claims</p></div>
     </aside>
     <main className="main">
-      <header className="topbar"><button type="button" className="mobile-menu-btn" aria-expanded={mobileNavOpen} aria-controls="app-navigation" onClick={() => setMobileNavOpen(v => !v)}>☰ <span>Menu</span></button><div className="breadcrumb">SeedHedge <span>/</span> Strategy Studio</div><div className="top-actions">{weatherMode === 'historical' ? 'Historical replay' : 'Synthetic demo'} · {region.label} <span className="avatar">SH</span></div></header>
+      <header className="topbar"><button type="button" onClick={()=>setDetailedView(false)} className="reset-btn">← Farmer view</button><button type="button" className="mobile-menu-btn" aria-expanded={mobileNavOpen} aria-controls="app-navigation" onClick={() => setMobileNavOpen(v => !v)}>☰ <span>Menu</span></button><div className="breadcrumb">SeedHedge <span>/</span> Strategy Studio</div><div className="top-actions">{weatherMode === 'historical' ? 'Historical replay' : 'Synthetic demo'} · {region.label} <span className="avatar">SH</span></div></header>
       <div className="content guided-content" id="studio">
         <header className="guide-intro">
           <span className="section-label">SEEDHEDGE · HISTORICAL REPLAY DEMONSTRATION</span>

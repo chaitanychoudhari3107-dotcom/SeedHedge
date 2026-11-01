@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import type {Strategy} from '../src/engine.ts';
+import {makeFarmerSuggestion} from '../src/final-plan.ts';
+const single:Strategy={id:'s1',allocations:[{date:'2024-06-29',share:1}],verdict:'acceptable',maximumExposure:.25,cost:8750,visits:1,exposures:[],reason:'test'};
+const split:Strategy={...single,id:'s2',allocations:[{date:'2024-06-29',share:.5},{date:'2024-07-02',share:.5}],cost:9200,visits:2};
+const base={weatherMode:'historical' as const,weatherReady:true,loading:false,rainDate:'2024-06-29',winner:single};
+test('both methods agree on exactly the same single-date selection',()=>{const v=makeFarmerSuggestion(base);assert.equal(v.kind,'both');assert.equal(v.reason,'same-date');assert.equal(v.agreement,true);assert.equal(v.plan?.id,'s1');});
+test('a different date or a split is explicitly a disagreement',()=>{const v=makeFarmerSuggestion({...base,winner:split});assert.equal(v.reason,'different-dates');assert.equal(v.agreement,false);assert.equal(v.plan?.visits,2);});
+test('no Plan A qualifier does not turn Plan B into a crop-safe choice',()=>{const v=makeFarmerSuggestion({...base,rainDate:null});assert.equal(v.kind,'split-only');assert.equal(v.reason,'split-only');assert.equal(v.rainDate,null);});
+test('Plan A alone does not invent a Plan B choice',()=>{const v=makeFarmerSuggestion({...base,winner:null});assert.equal(v.kind,'rain-only');assert.equal(v.plan,null);});
+test('no result is represented as missing rather than an invented winner',()=>{const v=makeFarmerSuggestion({...base,rainDate:null,winner:null});assert.equal(v.kind,'neither');assert.equal(v.plan,null);});
+test('loading and partial evidence never yield a historical recommendation',()=>{const x=makeFarmerSuggestion({...base,loading:true});const y=makeFarmerSuggestion({...base,weatherReady:false});assert.equal(x.kind,'loading');assert.equal(x.plan,null);assert.equal(y.kind,'missing');assert.equal(y.plan,null);});
+test('fictional demo cannot masquerade as a historical result',()=>{const v=makeFarmerSuggestion({...base,weatherMode:'synthetic',weatherReady:false});assert.equal(v.kind,'demo');assert.equal(v.rainDate,null);assert.equal(v.agreement,false);});

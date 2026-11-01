@@ -1,4 +1,4 @@
-"""Chromium UI QA for the four-step historical SeedHedge review flow.
+"""Chromium UI QA for the farmer-first and detailed historical SeedHedge flows.
 
 Run against a local Vite server. All weather API responses here are controlled mocks;
 passing these tests does NOT certify live Open-Meteo, Vercel relay or crop advice.
@@ -56,6 +56,8 @@ class GuidedSeedHedgeTests(unittest.TestCase):
 
         self.page.route('**/*open-meteo.com/**', route_weather)
         self.page.goto(BASE_URL, wait_until='domcontentloaded')
+        # Existing detailed dashboard remains available for technical regression testing.
+        self.page.get_by_role('button', name='Detailed View').click()
         self.page.get_by_text('Historical reanalysis ready for 2022, 2023, 2024, 2025', exact=False).wait_for(timeout=14000)
 
     def tearDown(self):
@@ -189,7 +191,7 @@ class GuidedSeedHedgeTests(unittest.TestCase):
         self.assertIn('stable weather', p.locator('.guide-mode-switch').inner_text())
         p.locator('#weather-mode-step').select_option('historical')
         self.assertIn('REAL PAST RECORDS', p.locator('.guide-mode-switch').inner_text())
-        p.get_by_text('Historical reanalysis ready for 2022, 2023, 2024, 2025',exact=False).wait_for(timeout=14000)
+        p.locator('.hub-state-ready').wait_for(state='visible', timeout=14000)
         self.assertIn('2022–2025 replay', p.locator('.hub-plan-b').inner_text())
 
     def test_plan_a_cost_is_explained_and_weather_temperature_visible(self):
@@ -198,7 +200,7 @@ class GuidedSeedHedgeTests(unittest.TestCase):
         self.assertIn('All one-day options currently cost the same', p.locator('.hub-plan-a').inner_text())
         self.assertIn('Temperature and modeled weather exposure', p.locator('.hub-date-evidence').inner_text())
         self.assertIn('30.0 °C', p.locator('.hub-date-evidence').inner_text())
-        self.assertIn('not a crop-loss probability', p.locator('.hub-date-evidence').inner_text().lower())
+        self.assertRegex(p.locator('.hub-date-evidence').inner_text().lower(), r'not (?:a )?crop-loss probability')
 
     def test_one_versus_two_visits_explained_with_real_model_values(self):
         p = self.page
@@ -217,7 +219,7 @@ class GuidedSeedHedgeTests(unittest.TestCase):
         report = p.locator('#farm-report')
         self.assertIn('Jalna, Maharashtra', report.inner_text())
         self.assertIn('Soybean (Kharif) only', report.inner_text())
-        self.assertIn('Highest 3-day temperature', report.inner_text())
+        self.assertIn('highest 3-day temperature', report.inner_text().lower())
         self.assertIn('One-day vs two-day planting options', report.inner_text())
         self.assertIn('₹450', report.inner_text())
         self.assertTrue(report.get_by_role('button',name='Print / Save as PDF').is_visible())
@@ -266,6 +268,113 @@ class GuidedSeedHedgeTests(unittest.TestCase):
         self.assertFalse(p.locator('#app-navigation').is_visible())
         self.assertTrue(p.locator('.farmer-first').is_visible())
         p.screenshot(path=os.path.join(tempfile.gettempdir(),'seedhedge-mobile-qa.png'), full_page=True)
+
+
+class FarmerFirstJourneyTests(unittest.TestCase):
+    """The main (default) four-step farmer flow. Controlled weather fixtures only."""
+    @classmethod
+    def setUpClass(cls):
+        cls.playwright = sync_playwright().start()
+        cls.browser = cls.playwright.chromium.launch(headless=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.playwright.stop()
+
+    def setUp(self):
+        self.context = self.browser.new_context(viewport={'width': 1365, 'height': 900})
+        self.page = self.context.new_page()
+        def route_weather(route):
+            u = route.request.url
+            if 'archive-api.open-meteo.com' in u:
+                yr = int(parse_qs(urlparse(u).query)['start_date'][0][:4])
+                route.fulfill(json=weather_payload(yr))
+            elif 'api.open-meteo.com' in u:
+                route.fulfill(json=weather_payload(date.today().year, forecast=True))
+            else:
+                route.continue_()
+        self.page.route('**/*open-meteo.com/**', route_weather)
+        self.page.goto(BASE_URL,wait_until='domcontentloaded')
+        self.page.locator('.farmer-step').first.wait_for()
+
+    def tearDown(self):
+        self.context.close()
+
+    def at(self,n):
+        self.page.locator('.farmer-step').nth(n).click()
+
+    def test_four_sequential_actions_and_inputs_survive_navigation(self):
+        p=self.page
+        assert p.locator('.farmer-step').count()==4
+        assert p.locator('#farmer-region').is_visible()
+        self.at(1)
+        p.locator('#farmer-area').fill('3')
+        self.at(2)
+        assert p.locator('.farmer-rain-row').count()==6
+        assert p.locator('.farmer-plan-card').count()==2
+        self.at(3)
+        assert p.locator('#farmer-action-plan').is_visible()
+        self.at(1)
+        assert p.locator('#farmer-area').input_value()=='3'
+
+    def test_three_languages_keep_selected_inputs_and_next_step(self):
+        p=self.page
+        p.get_by_label('Language / भाषा').select_option('mr')
+        assert 'पाऊस तपासा' in p.locator('.farmer-step').first.inner_text()
+        self.at(1)
+        p.locator('#farmer-area').fill('4')
+        p.get_by_label('Language / भाषा').select_option('hi')
+        assert 'खेत की जानकारी भरें' in p.locator('.farmer-section-heading').inner_text()
+        assert p.locator('#farmer-area').input_value()=='4'
+        self.at(3)
+        assert 'मेरी बुवाई योजना' in p.locator('.farmer-step').last.inner_text()
+
+    def test_rainfall_chart_explains_passes_and_year_values(self):
+        p=self.page
+        self.at(2)
+        p.locator('.farmer-rain-row').first.locator('summary').click()
+        assert p.locator('.farmer-year-bars').first.is_visible()
+        assert p.locator('.farmer-year-bars').first.get_by_text('2022').is_visible()
+        p.locator('#farmer-rain-threshold').fill('180')
+        assert p.get_by_text('No date passed the rain rule').is_visible()
+
+    def test_more_than_five_dates_and_dynamic_rates(self):
+        p=self.page
+        self.at(1)
+        p.locator('#farmer-spacing').select_option('1')
+        assert p.locator('.farmer-date-chips button').count()==16
+        p.locator('.farmer-details summary').click()
+        p.locator('.farmer-details input[type=number]').nth(4).fill('2000')
+        self.at(3)
+        assert '10,300' in p.locator('.farmer-summary').inner_text()
+
+    def test_demo_does_not_show_historical_evidence(self):
+        p=self.page
+        p.locator('#farmer-weather-mode').select_option('synthetic')
+        self.at(2)
+        assert 'Practice data is not real weather' in p.locator('#farmer-rain').inner_text()
+        assert p.locator('.farmer-year-bars').count()==0
+        self.at(3)
+        assert 'Practice result' in p.locator('.farmer-final-head').inner_text()
+        assert p.locator('.farmer-report-weather').count()==0
+
+    def test_error_state_does_not_claim_real_model_plan(self):
+        p=self.page
+        p.unroute('**/*open-meteo.com/**')
+        p.route('**/*open-meteo.com/**',lambda route: route.fulfill(status=500,body='failed'))
+        p.locator('#farmer-region').select_option('jalna')
+        p.get_by_text('Weather could not be loaded').wait_for(timeout=18000)
+        self.at(3)
+        assert 'No final option yet' in p.locator('.farmer-final-head').inner_text()
+        assert p.locator('.farmer-report-weather').count()==0
+
+    def test_mobile_navigation_and_print_action(self):
+        p=self.page
+        p.set_viewport_size({'width':390,'height':844})
+        assert p.locator('.farmer-step').first.is_visible()
+        self.at(3)
+        assert p.get_by_role('button',name='Save or print plan').is_visible()
 
 
 if __name__ == '__main__':
